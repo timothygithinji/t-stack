@@ -114,15 +114,16 @@ See [`scripts/smoke.ts`](./scripts/smoke.ts) for the full env-var contract.
 
 Releases are driven by a manually-triggered GitHub Action — **never run from a developer's machine**. The workflow uses [release-it](https://github.com/release-it/release-it) + [Conventional Commits](https://www.conventionalcommits.org/) to bump the version, update `CHANGELOG.md`, tag, create a GitHub release, and publish to npm (with provenance).
 
-**One-time setup:**
-1. Create an [npm automation access token](https://docs.npmjs.com/creating-and-viewing-access-tokens) (granular, **publish** access to `@timothygithinji/t-stack`).
-2. Store it in Doppler — project `t-stack`, config `prd`, key `NPM_TOKEN`.
-3. Create a Doppler **Service Token** scoped to `t-stack/prd` (Doppler dashboard → project `t-stack` → `prd` config → Access tab → "Generate" service token; or `doppler configs tokens create release --project t-stack --config prd --plain`).
-4. Add the service token as a repo secret: `gh secret set DOPPLER_TOKEN`.
+**One-time setup** — uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (no tokens, OIDC end-to-end, 2FA stays enforced for human flows):
 
-Doppler stays the source of truth for `NPM_TOKEN` (and any future CI secrets). The release workflow uses the read-only, config-scoped service token to fetch them into `$GITHUB_ENV` at runtime, then publishes with npm provenance. The only long-lived credential in GitHub is the narrow Doppler service token — `NPM_TOKEN` itself never lives there.
+1. On [npmjs.com/package/@timothygithinji/t-stack/access](https://www.npmjs.com/package/@timothygithinji/t-stack/access), under **Trusted Publishers**, click **Add trusted publisher** → **GitHub Actions** and fill in:
+   - Organization or user: `timothygithinji`
+   - Repository: `t-stack`
+   - Workflow filename: `release.yml`
+   - Environment: (leave blank)
+2. (For the very first publish only, before the package exists on npm) publish v0.1.0 locally once: `npm publish --otp=<6-digit-code>` — then enable trusted publishing for subsequent releases.
 
-> When you move to a Doppler Team plan, swap step 3/4 for an OIDC Identity (eliminates the long-lived service token).
+No `NPM_TOKEN`, no Doppler service token, no long-lived secrets anywhere. The release workflow's `id-token: write` permission lets the npm CLI exchange a GitHub OIDC token for a short-lived npm publish credential at runtime. Provenance is automatic — every package version is cryptographically signed and traceable back to the exact CI run.
 
 **To release:**
 1. Push your conventional-commit changes to `main`.

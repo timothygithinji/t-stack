@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write       # push tag + commit back to main
-      id-token: write       # npm provenance
+      id-token: write       # npm trusted publishing (OIDC) + provenance
       issues: write
       pull-requests: write
 
@@ -38,25 +38,11 @@ jobs:
         with:
           bun-version-file: .bun-version
 
-      - name: Set up Node (npm publish needs node runtime)
+      - name: Set up Node (npm CLI exchanges OIDC for trusted-publishing token)
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
-
-      - name: Fetch CI secrets from Doppler
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: |
-          doppler secrets download \
-            --no-file \
-            --format=docker \
-            --project=t-stack \
-            --config=prd \
-            --token="$DOPPLER_TOKEN" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -76,8 +62,9 @@ jobs:
       - name: Release (release-it)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN was loaded into $GITHUB_ENV by the Doppler step above.
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+          # No NPM_TOKEN. npm CLI uses the OIDC token from the runner to
+          # authenticate via trusted publishing, configured at
+          # https://www.npmjs.com/package/@timothygithinji/t-stack/access
           NPM_CONFIG_PROVENANCE: "true"
           INCREMENT: ${{ inputs.increment }}
         run: |
