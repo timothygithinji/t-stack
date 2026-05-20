@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "@octokit/rest": "^21.0.2",
+    "@octokit/rest": "22.0.1",
     "@pulumi/cloudflare": "^5.42.0",
     "@pulumi/pulumi": "^3.140.0",
     "citty": "^0.1.6",
