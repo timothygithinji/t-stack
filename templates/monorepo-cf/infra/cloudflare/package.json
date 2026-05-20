@@ -5,11 +5,11 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@pulumi/pulumi": "^3.140.0",
-    "@pulumi/cloudflare": "^5.42.0"
+    "@pulumi/pulumi": "^3.242.0",
+    "@pulumi/cloudflare": "^6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^25.9.1",
     "typescript": "catalog:"
   }
 }

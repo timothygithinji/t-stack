@@ -6,7 +6,7 @@
       "dependencies": {
         "@clack/prompts": "1.4.0",
         "@octokit/rest": "22.0.1",
-        "@pulumi/cloudflare": "^5.42.0",
+        "@pulumi/cloudflare": "6.16.0",
         "@pulumi/pulumi": "3.242.0",
         "citty": "0.2.2",
         "comment-json": "5.0.0",
@@ -270,7 +270,7 @@
 
     "@protobufjs/utf8": ["@protobufjs/utf8@1.1.1", "", {}, "sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg=="],
 
-    "@pulumi/cloudflare": ["@pulumi/cloudflare@5.49.1", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0" } }, "sha512-sc4j3XgKId9g9hIB5ZS4QXCLStZzYwzIAgbeAfW4+O78Nd3/tkNsuEWmUnPTpsw5Ezpc5zIwZxBCwhPX5qg+sA=="],
+    "@pulumi/cloudflare": ["@pulumi/cloudflare@6.16.0", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0" } }, "sha512-7uYkUSAqlN1NZWlDUQ4jG6GzAuaqhEBh4mitOoa0aU5LwswT/vW49K+uKNJIgK6IIC/qFU89JYrGnaIPJMpf5g=="],
 
     "@pulumi/pulumi": ["@pulumi/pulumi@3.242.0", "", { "dependencies": { "@grpc/grpc-js": "^1.10.1", "@logdna/tail-file": "^2.0.6", "@npmcli/arborist": "^9.0.0", "@opentelemetry/api": "^1.9", "@opentelemetry/exporter-trace-otlp-grpc": "^0.57", "@opentelemetry/exporter-zipkin": "^1.30", "@opentelemetry/instrumentation": "^0.57", "@opentelemetry/instrumentation-grpc": "^0.57", "@opentelemetry/resources": "^1.30", "@opentelemetry/sdk-trace-base": "^1.30", "@opentelemetry/sdk-trace-node": "^1.30", "@types/google-protobuf": "^3.15.5", "@types/semver": "^7.5.6", "@types/tmp": "^0.2.6", "execa": "^5.1.0", "fdir": "^6.5.0", "google-protobuf": "^3.21.4", "ini": "^2.0.0", "js-yaml": "^3.14.2", "minimist": "^1.2.6", "normalize-package-data": "^6.0.0", "picomatch": "^4.0.0", "require-from-string": "^2.0.1", "semver": "^7.5.2", "source-map-support": "^0.5.6", "tmp": "^0.2.4", "upath": "^1.1.0" }, "peerDependencies": { "ts-node": ">= 7.0.1 < 12", "typescript": ">= 3.8.3 < 7" }, "optionalPeers": ["ts-node", "typescript"] }, "sha512-3ij+fKfCbepOWMQH63UJ/9LNiDQvob10kZ8uLZ+gpYZHFe53PAPl7wqtxYWLrb3WcBSXgyDVjC+IUbo0jyDrMA=="],
 

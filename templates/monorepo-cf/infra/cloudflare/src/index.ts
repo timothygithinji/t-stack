@@ -18,25 +18,26 @@ const bucket = new cloudflare.R2Bucket("{{projectName}}", {
 });
 
 {{#if access}}// Cloudflare Access protects the web app behind {{org.defaultDomain}} SSO.
+// In @pulumi/cloudflare v6 the policy is declared as a separate resource and
+// then attached via the application's `policies` array.
+const accessPolicy = new cloudflare.ZeroTrustAccessPolicy("{{projectName}}-web-policy", {
+  accountId,
+  name: "Allow {{org.defaultDomain}} emails",
+  decision: "allow",
+  includes: [
+    {
+      emailDomain: { domain: "{{org.defaultDomain}}" },
+    },
+  ],
+});
+
 const accessApp = new cloudflare.ZeroTrustAccessApplication("{{projectName}}-web-access", {
   accountId,
   name: "{{projectName}} web",
   domain,
   type: "self_hosted",
   sessionDuration: "24h",
-});
-
-new cloudflare.ZeroTrustAccessPolicy("{{projectName}}-web-policy", {
-  accountId,
-  applicationId: accessApp.id,
-  name: "Allow {{org.defaultDomain}} emails",
-  precedence: 1,
-  decision: "allow",
-  includes: [
-    {
-      emailDomains: ["{{org.defaultDomain}}"],
-    },
-  ],
+  policies: [{ id: accessPolicy.id }],
 });
 
 {{/if}}export const kvNamespaceId = kv.id;

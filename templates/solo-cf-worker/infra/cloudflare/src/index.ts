@@ -18,11 +18,24 @@ const kv = new cloudflare.WorkersKvNamespace(`${projectName}-kv`, {
 const bucket = new cloudflare.R2Bucket(`${projectName}-r2`, {
   accountId,
   name: projectName,
-  location: "WNAM",
+  location: "wnam",
 });
 
 {{#if access}}
 // Cloudflare Access — restrict the domain to members of the org email.
+// In @pulumi/cloudflare v6 the policy is declared as a separate resource
+// and then attached via the application's `policies` array.
+const accessPolicy = new cloudflare.ZeroTrustAccessPolicy(`${projectName}-access-policy`, {
+  accountId,
+  name: "Allow {{org.defaultDomain}}",
+  decision: "allow",
+  includes: [
+    {
+      emailDomain: { domain: "{{org.defaultDomain}}" },
+    },
+  ],
+});
+
 const accessApp = new cloudflare.ZeroTrustAccessApplication(`${projectName}-access-app`, {
   accountId,
   name: `${projectName}`,
@@ -30,19 +43,7 @@ const accessApp = new cloudflare.ZeroTrustAccessApplication(`${projectName}-acce
   type: "self_hosted",
   sessionDuration: "24h",
   autoRedirectToIdentity: false,
-});
-
-const accessPolicy = new cloudflare.ZeroTrustAccessPolicy(`${projectName}-access-policy`, {
-  accountId,
-  applicationId: accessApp.id,
-  name: "Allow {{org.defaultDomain}}",
-  precedence: 1,
-  decision: "allow",
-  includes: [
-    {
-      emailDomains: ["{{org.defaultDomain}}"],
-    },
-  ],
+  policies: [{ id: accessPolicy.id }],
 });
 
 export const accessAppId = accessApp.id;
