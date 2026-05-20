@@ -1,5 +1,13 @@
 # Changelog
 
+## <small>0.1.1 (2026-05-20)</small>
+
+* ci(release): pin npm to 11.5.1 (avoids @latest self-upgrade brokenness) ([69cadb9](https://github.com/timothygithinji/t-stack/commit/69cadb9))
+* ci(release): skip npm.whoami check (trusted publishing has no token to validate) ([71e9eb9](https://github.com/timothygithinji/t-stack/commit/71e9eb9))
+* ci(release): switch to npm trusted publishing (OIDC, no tokens) ([4a00141](https://github.com/timothygithinji/t-stack/commit/4a00141))
+* ci(release): upgrade npm to v11+ for trusted publishing support ([44a61e0](https://github.com/timothygithinji/t-stack/commit/44a61e0))
+* docs(readme): note trusted publishing in footer ([730536d](https://github.com/timothygithinji/t-stack/commit/730536d))
+
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
