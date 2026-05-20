@@ -222,7 +222,7 @@ describe("github.configureDopplerOidc", () => {
         dopplerWorkplaceName: "fanya-labs",
       },
     });
-    process.env.T_STACK_DOPPLER_OIDC_IDENTITY_ID_FANYA_LABS = undefined;
+    delete process.env.T_STACK_DOPPLER_OIDC_IDENTITY_ID_FANYA_LABS;
     const gh = new Octokit({ auth: "ghp_test_token" });
     await expect(configureDopplerOidc(ctx, gh)).resolves.toBeUndefined();
     expect(patchedNames).toEqual([]);

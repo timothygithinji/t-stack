@@ -84,5 +84,5 @@ export function clearTokens(): void {
   for (const key of REQUIRED_KEYS) {
     delete process.env[key];
   }
-  process.env.HOOKDECK_API_KEY = undefined;
+  delete process.env.HOOKDECK_API_KEY;
 }

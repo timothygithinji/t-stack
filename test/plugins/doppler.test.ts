@@ -148,7 +148,7 @@ afterEach(() => {
   server.resetHandlers();
 });
 afterAll(() => {
-  process.env.DOPPLER_TOKEN = undefined;
+  delete process.env.DOPPLER_TOKEN;
   server.close();
 });
 

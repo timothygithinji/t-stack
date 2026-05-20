@@ -26,7 +26,8 @@
         "noExcessiveCognitiveComplexity": "off"
       },
       "performance": {
-        "useTopLevelRegex": "off"
+        "useTopLevelRegex": "off",
+        "noDelete": "off"
       },
       "nursery": {
         "noExportedImports": "off",

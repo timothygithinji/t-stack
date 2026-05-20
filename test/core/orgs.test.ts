@@ -17,7 +17,7 @@ describe("OrgsStore", () => {
 
   afterEach(() => {
     if (ORIGINAL_HOME === undefined) {
-      process.env.HOME = undefined;
+      delete process.env.HOME;
     } else {
       process.env.HOME = ORIGINAL_HOME;
     }
