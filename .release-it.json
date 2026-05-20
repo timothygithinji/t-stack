@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/release-it/schema/release-it.json",
+  "$schema": "https://unpkg.com/release-it@20/schema/release-it.json",
   "git": {
     "commitMessage": "chore(release): v${version}",
     "tagName": "v${version}",
@@ -8,7 +8,8 @@
     "push": true
   },
   "github": {
-    "release": false
+    "release": true,
+    "releaseName": "v${version}"
   },
   "npm": {
     "publish": true,
