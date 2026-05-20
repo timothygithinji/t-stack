@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.2](https://github.com/timothygithinji/t-stack/compare/v0.1.1...v0.1.2) (2026-05-20)
+
+### Build System
+
+* **deps:** bump @biomejs/biome to 2.4.15 and ultracite to 7.7.0 ([da2bbfc](https://github.com/timothygithinji/t-stack/commit/da2bbfce909c78752b30b6c5fe8ae0a17d4fd020))
+* **deps:** bump @clack/prompts to 1.4.0 ([a439b2c](https://github.com/timothygithinji/t-stack/commit/a439b2c2268b244bfacd83a3a7b82a83ec125cff))
+* **deps:** bump @octokit/rest to 22.0.1 ([b79c4a2](https://github.com/timothygithinji/t-stack/commit/b79c4a2baa5bcf0c61e25e1aa9f4f6e0c3da625f))
+* **deps:** bump @pulumi/cloudflare to 6.16.0 ([95aaaee](https://github.com/timothygithinji/t-stack/commit/95aaaeef50ea902e158da62fe598eed000a8bd9c))
+* **deps:** bump citty 0.2.2, comment-json 5.0.0, pathe 2.0.3 ([4b81957](https://github.com/timothygithinji/t-stack/commit/4b819578c98e450104a13c4c59d6bb8d0ce40001))
+* **deps:** bump commitlint 21, @types/node 25, msw 2.14, husky/types-proper-lockfile pinned ([fedd0a7](https://github.com/timothygithinji/t-stack/commit/fedd0a7e46a85d616d062ae38a39e96a5e0082de))
+* **deps:** bump consola/execa/handlebars/ofetch/smol-toml + pin @pulumi/pulumi 3.242 ([f7ae5bf](https://github.com/timothygithinji/t-stack/commit/f7ae5bf4cb9fea8789c571575df4e3ed111d6f3a))
+* **deps:** bump libsodium-wrappers to 0.8.4 ([63b82ce](https://github.com/timothygithinji/t-stack/commit/63b82cee670c1c6e3a5a6f340145edbc109e5459))
+* **deps:** bump release-it 20.0.1 + @release-it/conventional-changelog 11.0.0 ([35c041d](https://github.com/timothygithinji/t-stack/commit/35c041df77233ad67781c785e0b5f66634f83b60))
+* **deps:** bump typescript to 6.0.3 ([e8e7502](https://github.com/timothygithinji/t-stack/commit/e8e75026cad06160188f33cd697e683ec6f8b587))
+* **deps:** bump vitest to 4.1.7 ([42c7176](https://github.com/timothygithinji/t-stack/commit/42c717668f2c90bd56bb0e3ad270442fa5e34f5e))
+* **deps:** bump zod to 4.4.3 ([0ccf21e](https://github.com/timothygithinji/t-stack/commit/0ccf21e37366a51c04c0d19368e00e024ee73cfe))
+* **deps:** pin release-it 17.11.0 + plugin 9.0.3; move GH release to separate workflow step ([6f054d2](https://github.com/timothygithinji/t-stack/commit/6f054d261540f1dc3bdb226b1428e8ef68e9fc58))
+* **deps:** pin release-it@20.0.1 + plugin@11.0.0 (fixes GH release crash) ([f63eb15](https://github.com/timothygithinji/t-stack/commit/f63eb15c488f30335eeddd91efbb78bc5515b44e))
+
 ## <small>0.1.1 (2026-05-20)</small>
 
 * ci(release): pin npm to 11.5.1 (avoids @latest self-upgrade brokenness) ([69cadb9](https://github.com/timothygithinji/t-stack/commit/69cadb9))
