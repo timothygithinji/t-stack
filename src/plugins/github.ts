@@ -1,11 +1,7 @@
 import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
 import { Octokit } from "@octokit/rest";
 import { execa } from "execa";
-
-const sodium = createRequire(import.meta.url)(
-  "libsodium-wrappers"
-) as typeof import("libsodium-wrappers");
+import sodium from "libsodium-wrappers";
 import { join } from "pathe";
 import type { Ctx } from "../core/preset.ts";
 

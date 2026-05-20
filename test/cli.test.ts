@@ -1,20 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-// The `libsodium-wrappers` ESM build references a sibling that isn't published;
-// stub the API surface so transitive imports through commands -> plugins/github
-// don't break module loading.
-vi.mock("libsodium-wrappers", () => {
-  const api = {
-    ready: Promise.resolve(),
-    base64_variants: { ORIGINAL: 1 },
-    from_base64: () => new Uint8Array(),
-    from_string: () => new Uint8Array(),
-    crypto_box_seal: () => new Uint8Array(),
-    to_base64: () => "",
-  };
-  return { default: api, ...api };
-});
-
 // Intercept runMain so importing `src/cli.ts` doesn't try to actually parse argv.
 // We capture the root command definition that the CLI hands to runMain, then
 // inspect its subCommands map.

@@ -31,12 +31,8 @@ vi.mock("execa", () => ({
   execa: execaMock,
 }));
 
-import { createRequire } from "node:module";
-const sodium = createRequire(import.meta.url)(
-  "libsodium-wrappers"
-) as typeof import("libsodium-wrappers");
-
 import { Octokit } from "@octokit/rest";
+import sodium from "libsodium-wrappers";
 import {
   configureDopplerOidc,
   createRepo,
