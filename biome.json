@@ -1,8 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "extends": ["ultracite"],
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "extends": ["ultracite/biome/core"],
   "files": {
-    "ignore": ["dist", "node_modules", "templates", "**/*.md", "test/fixtures"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!templates/**",
+      "!**/*.md",
+      "!test/fixtures/**"
+    ]
   },
   "javascript": {
     "formatter": {
@@ -10,28 +17,43 @@
       "semicolons": "always"
     }
   },
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedInterfaceMembers": "off",
+        "organizeImports": "off"
+      }
+    }
+  },
   "linter": {
     "rules": {
       "style": {
         "useImportType": "off",
-        "useCollapsedElseIf": "off"
+        "useCollapsedElseIf": "off",
+        "noNestedTernary": "off",
+        "noExportedImports": "off",
+        "useConsistentArrowReturn": "off",
+        "useConsistentTypeDefinitions": "off",
+        "noNegationElse": "off"
       },
       "suspicious": {
         "noConsole": "off",
         "noEmptyBlockStatements": "off",
-        "useAwait": "off"
+        "useAwait": "off",
+        "noEmptySource": "off",
+        "noBiomeFirstException": "off",
+        "useBiomeIgnoreFolder": "off"
       },
       "complexity": {
         "noVoid": "off",
-        "noExcessiveCognitiveComplexity": "off"
+        "noExcessiveCognitiveComplexity": "off",
+        "noUselessUndefined": "off",
+        "useSimplifiedLogicExpression": "off"
       },
       "performance": {
         "useTopLevelRegex": "off",
-        "noDelete": "off"
-      },
-      "nursery": {
-        "noExportedImports": "off",
-        "noNestedTernary": "off"
+        "noDelete": "off",
+        "noNamespaceImport": "off"
       }
     }
   }

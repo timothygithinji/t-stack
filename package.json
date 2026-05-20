@@ -38,8 +38,8 @@
     "build": "bun build src/cli.ts --outdir dist --target node --format esm --packages=external",
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "bunx ultracite lint",
-    "lint:fix": "bunx ultracite format",
+    "lint": "bunx ultracite check",
+    "lint:fix": "bunx ultracite fix",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -73,7 +73,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "2.4.15",
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
     "@release-it/conventional-changelog": "9.0.3",
@@ -84,7 +84,7 @@
     "msw": "^2.6.6",
     "release-it": "17.11.0",
     "typescript": "^5.7.2",
-    "ultracite": "^4.1.16",
+    "ultracite": "7.7.0",
     "vitest": "^2.1.5"
   }
 }
