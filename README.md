@@ -146,3 +146,7 @@ CI runs the same gates on every push/PR (`.github/workflows/ci.yml`) and again b
 ## License
 
 [MIT](./LICENSE) © Timothy Githinji
+
+---
+
+*Published with [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) — no tokens, OIDC end-to-end. Every release is cryptographically signed and traceable back to the exact GitHub Actions workflow run.*
