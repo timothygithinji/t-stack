@@ -117,10 +117,12 @@ Releases are driven by a manually-triggered GitHub Action — **never run from a
 **One-time setup:**
 1. Create an [npm automation access token](https://docs.npmjs.com/creating-and-viewing-access-tokens) (granular, **publish** access to `@timothygithinji/t-stack`).
 2. Store it in Doppler — project `t-stack`, config `prd`, key `NPM_TOKEN`.
-3. Create a Doppler **Identity** with GitHub OIDC trust scoped to `timothygithinji/t-stack`. Grant it read access to `t-stack/prd`.
-4. Add the Identity UUID as a repo variable: `gh variable set DOPPLER_IDENTITY_ID --body <uuid>`.
+3. Create a Doppler **Service Token** scoped to `t-stack/prd` (Doppler dashboard → project `t-stack` → `prd` config → Access tab → "Generate" service token; or `doppler configs tokens create release --project t-stack --config prd --plain`).
+4. Add the service token as a repo secret: `gh secret set DOPPLER_TOKEN`.
 
-The release workflow exchanges GitHub's OIDC token for a short-lived Doppler JWT at runtime, fetches `NPM_TOKEN` (and any future CI secrets) from Doppler, and publishes with npm provenance. **No long-lived secrets in GitHub.**
+Doppler stays the source of truth for `NPM_TOKEN` (and any future CI secrets). The release workflow uses the read-only, config-scoped service token to fetch them into `$GITHUB_ENV` at runtime, then publishes with npm provenance. The only long-lived credential in GitHub is the narrow Doppler service token — `NPM_TOKEN` itself never lives there.
+
+> When you move to a Doppler Team plan, swap step 3/4 for an OIDC Identity (eliminates the long-lived service token).
 
 **To release:**
 1. Push your conventional-commit changes to `main`.
