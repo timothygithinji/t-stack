@@ -1,0 +1,10 @@
+{
+  "name": "@{{projectName}}/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./base.json": "./base.json",
+    "./worker.json": "./worker.json",
+    "./react.json": "./react.json"
+  }
+}

@@ -1,0 +1,4 @@
+name: {{projectName}}-cloudflare
+runtime: nodejs
+description: {{projectName}} Cloudflare infra
+main: src/index.ts

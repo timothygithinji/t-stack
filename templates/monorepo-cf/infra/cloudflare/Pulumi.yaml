@@ -1,0 +1,4 @@
+name: {{projectName}}-cloudflare
+runtime: nodejs
+description: Cloudflare bindings (KV, R2{{#if access}}, Access{{/if}}) shared across {{projectName}} workers.
+main: src/index.ts

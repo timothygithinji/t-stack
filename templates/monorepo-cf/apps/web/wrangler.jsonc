@@ -1,0 +1,27 @@
+{
+  // Worker entry for {{projectName}}-web (TanStack Start on Cloudflare Workers).
+  // `main` points at the TanStack Start server entry; the `@cloudflare/vite-plugin`
+  // reads this file as input during `vite build` and emits a paired
+  // `wrangler.json` next to the built worker bundle under `dist/`, which is
+  // what `wrangler deploy` actually consumes.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "{{projectName}}-web",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Custom domain route. Managed by Pulumi DNS in infra/cloudflare.
+  "routes": [
+    { "pattern": "{{domain}}", "custom_domain": true }
+  ],
+
+  // managed by Pulumi
+  "kv_namespaces": [],
+
+  // managed by Pulumi
+  "r2_buckets": [],
+
+  "observability": {
+    "enabled": true
+  }
+}

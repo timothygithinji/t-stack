@@ -1,0 +1,36 @@
+# dependencies
+node_modules
+
+# build output
+dist
+*.tsbuildinfo
+
+# tooling caches
+.vitest-cache
+coverage
+.turbo
+
+# os + editor
+.DS_Store
+.idea
+*.swp
+*.swo
+
+# logs + tmp
+*.log
+.npm
+.bun
+
+# secrets / env (never commit)
+.env
+.env.local
+.env.*.local
+.dev.vars
+.t-stack-meta
+
+# pulumi
+Pulumi.*.yaml.bak
+pulumi-state-*.json
+
+# smoke artifacts
+smoke-*/

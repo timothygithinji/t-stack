@@ -1,0 +1,19 @@
+{
+  "name": "{{projectName}}-hookdeck-infra",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@pulumi/pulumi": "^3.140.0",
+    "@pulumi/hookdeck": "file:./sdks/hookdeck",
+    "tslib": "^2.8.1"
+  },
+  "trustedDependencies": [
+    "@pulumi/hookdeck"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "catalog:"
+  }
+}

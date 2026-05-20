@@ -1,0 +1,17 @@
+{
+  "name": "@{{projectName}}/trigger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "trigger dev",
+    "deploy": "trigger deploy"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "catalog:",
+    "@{{projectName}}/db": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

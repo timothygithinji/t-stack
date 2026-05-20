@@ -1,0 +1,22 @@
+{
+  // Worker entry for {{projectName}}-server (Hono API).
+  "name": "{{projectName}}-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Custom domain route. Managed by Pulumi DNS in infra/cloudflare.
+  "routes": [
+    { "pattern": "api.{{domain}}", "custom_domain": true }
+  ],
+
+  // managed by Pulumi
+  "kv_namespaces": [],
+
+  // managed by Pulumi
+  "r2_buckets": [],
+
+  "observability": {
+    "enabled": true
+  }
+}

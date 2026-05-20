@@ -1,0 +1,9 @@
+import { logger, task } from "@trigger.dev/sdk/v3";
+
+export const helloWorld = task({
+  id: "hello-world",
+  run: async (payload: { name: string }) => {
+    logger.info("Hello from Trigger.dev", { name: payload.name });
+    return { greeting: `Hello, ${payload.name}!` };
+  },
+});

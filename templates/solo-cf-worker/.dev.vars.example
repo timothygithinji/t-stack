@@ -1,0 +1,10 @@
+# Run `t-stack secrets pull --env dev` to populate this from Doppler.
+# Or directly:
+#   doppler secrets download --no-file --format=env --project={{projectName}} --config=dev > .dev.vars
+DATABASE_URL=
+{{#if trigger}}
+TRIGGER_SECRET_KEY=
+{{/if}}
+{{#if hookdeck}}
+HOOKDECK_API_KEY=
+{{/if}}

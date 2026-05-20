@@ -1,0 +1,4 @@
+name: {{projectName}}-hookdeck
+runtime: nodejs
+description: {{projectName}} Hookdeck infra
+main: src/index.ts

@@ -1,0 +1,15 @@
+{
+  "name": "{{projectName}}-cloudflare-infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@pulumi/pulumi": "^3.140.0",
+    "@pulumi/cloudflare": "^5.42.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  }
+}

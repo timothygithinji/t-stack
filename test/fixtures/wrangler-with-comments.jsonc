@@ -1,0 +1,16 @@
+// managed by Pulumi
+{
+  // worker entry
+  "name": "demo-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-09-23",
+  // KV bindings managed by Pulumi
+  "kv_namespaces": [],
+  // R2 buckets managed by Pulumi
+  "r2_buckets": [],
+  "vars": {
+    // do not edit by hand
+    "ENV": "production",
+    "FEATURE_FLAG": "on"
+  }
+}

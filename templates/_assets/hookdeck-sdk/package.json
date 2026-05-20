@@ -1,0 +1,27 @@
+{
+  "name": "@pulumi/hookdeck",
+  "version": "2.2.1",
+  "description": "A Pulumi provider dynamically bridged from hookdeck.",
+  "repository": "https://github.com/hookdeck/terraform-provider-hookdeck",
+  "main": "bin/index.js",
+  "scripts": {
+    "build": "tsc",
+    "postinstall": "node ./scripts/postinstall.js"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.142.0",
+    "@types/node": "^18",
+    "async-mutex": "^0.5.0",
+    "typescript": "^4.3.5"
+  },
+  "pulumi": {
+    "resource": true,
+    "name": "terraform-provider",
+    "version": "1.1.1",
+    "parameterization": {
+      "name": "hookdeck",
+      "version": "2.2.1",
+      "value": "eyJyZW1vdGUiOnsidXJsIjoicmVnaXN0cnkub3BlbnRvZnUub3JnL2hvb2tkZWNrL2hvb2tkZWNrIiwidmVyc2lvbiI6IjIuMi4xIn19"
+    }
+  }
+}

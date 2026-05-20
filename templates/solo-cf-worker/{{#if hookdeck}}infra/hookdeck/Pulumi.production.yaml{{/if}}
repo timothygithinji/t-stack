@@ -1,0 +1,3 @@
+config:
+  # HOOKDECK_API_KEY is passed via env var by `t-stack provision`.
+  {{projectName}}-hookdeck:destinationUrl: https://{{domain}}/webhooks/hookdeck

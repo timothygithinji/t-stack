@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "archetype": "monorepo-cf",
+  "projectName": "{{projectName}}",
+  "createdAt": null,
+  "lastProvisionedAt": null,
+  "steps": {},
+  "outputs": {},
+  "resources": {}
+}

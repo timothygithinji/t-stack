@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "project": {
+    "name": "{{projectName}}",
+    "archetype": "solo-cf-worker",
+    "org": "{{org.name}}",
+    "createdAt": "{{createdAt}}"
+  },
+  "steps": {}
+}

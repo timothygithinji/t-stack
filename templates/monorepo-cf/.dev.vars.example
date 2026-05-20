@@ -1,0 +1,4 @@
+DATABASE_URL=postgres://user:password@host/db?sslmode=require
+{{#if trigger}}TRIGGER_SECRET_KEY=
+{{/if}}{{#if hookdeck}}HOOKDECK_API_KEY=
+{{/if}}

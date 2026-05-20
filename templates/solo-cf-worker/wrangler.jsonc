@@ -1,0 +1,22 @@
+{
+  // Worker entry for {{projectName}}.
+  "name": "{{projectName}}",
+  "main": "src/server.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Custom domain route. Managed by Pulumi DNS in infra/cloudflare.
+  "routes": [
+    { "pattern": "{{domain}}", "custom_domain": true }
+  ],
+
+  // Bindings below are managed by Pulumi via `t-stack provision`. Do not edit manually.
+  "kv_namespaces": [],
+
+  // Bindings below are managed by Pulumi via `t-stack provision`. Do not edit manually.
+  "r2_buckets": [],
+
+  "observability": {
+    "enabled": true
+  }
+}
