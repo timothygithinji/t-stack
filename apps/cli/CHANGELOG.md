@@ -2,6 +2,12 @@
 
 
 
+## [0.8.0](https://github.com/timothygithinji/t-stack/compare/v0.7.1...v0.8.0) (2026-05-21)
+
+### Features
+
+* **templates:** ship Better Auth setup + Trigger.dev v4 + starter task ([c199b30](https://github.com/timothygithinji/t-stack/commit/c199b30033c810d281d5419021af234fe9cc3c65))
+
 ## [0.7.1](https://github.com/timothygithinji/t-stack/compare/v0.7.0...v0.7.1) (2026-05-21)
 
 ### Bug Fixes
