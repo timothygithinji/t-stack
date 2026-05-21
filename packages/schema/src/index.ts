@@ -1,2 +1,2 @@
-// Stub — populated in task #3 (build packages/schema).
-export {};
+export * from "./init.js";
+export * from "./meta.js";
