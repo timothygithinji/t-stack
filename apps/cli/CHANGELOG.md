@@ -2,6 +2,12 @@
 
 
 
+## [0.9.1](https://github.com/timothygithinji/t-stack/compare/v0.9.0...v0.9.1) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** surface adopt-vs-create verb + cascade after explicit state clear ([b94465e](https://github.com/timothygithinji/t-stack/commit/b94465e7ff0dd3072784b47650f7d61d02ee3ba5))
+
 ## [0.9.0](https://github.com/timothygithinji/t-stack/compare/v0.8.0...v0.9.0) (2026-05-21)
 
 ### Features
