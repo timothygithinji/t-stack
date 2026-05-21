@@ -72,9 +72,12 @@ function isConnStringCall(c: ExecaCall) {
 }
 
 describe("neon.create", () => {
-  it("creates a project and fetches its connection string", async () => {
+  it("creates a project when the projects list contains no match", async () => {
     setHandlers([
       (c) => {
+        if (isListCall(c)) {
+          return { stdout: JSON.stringify([]) };
+        }
         if (isCreateCall(c)) {
           return {
             stdout: JSON.stringify({
@@ -96,14 +99,12 @@ describe("neon.create", () => {
     expect(refs.projectName).toBe("demo");
     expect(refs.branchId).toBe("br1");
     expect(refs.connectionString).toBe("postgres://demo-url");
+    expect(calls.some(isCreateCall)).toBe(true);
   });
 
-  it("falls back to projects list when create fails with already exists", async () => {
+  it("reuses an existing project without calling create", async () => {
     setHandlers([
       (c) => {
-        if (isCreateCall(c)) {
-          return { throws: true, stderr: "project already exists" };
-        }
         if (isListCall(c)) {
           return {
             stdout: JSON.stringify([
@@ -111,6 +112,9 @@ describe("neon.create", () => {
               { id: "p2", name: "other" },
             ]),
           };
+        }
+        if (isCreateCall(c)) {
+          throw new Error("create should not be called when project exists");
         }
         if (isConnStringCall(c)) {
           return {
@@ -125,33 +129,49 @@ describe("neon.create", () => {
     const refs = await create(ctx);
     expect(refs.projectId).toBe("p1");
     expect(refs.connectionString).toBe("postgres://demo-existing");
-    expect(calls.some((c) => isListCall(c))).toBe(true);
+    expect(calls.some(isCreateCall)).toBe(false);
   });
 
-  it("is idempotent — second call returns the same connectionString", async () => {
-    // Both invocations: first time the create succeeds, second time the
-    // create returns already-exists and we route through the list.
-    let created = false;
+  it("matches existing projects case-insensitively", async () => {
     setHandlers([
       (c) => {
-        if (isCreateCall(c)) {
-          if (!created) {
-            created = true;
-            return {
-              stdout: JSON.stringify({
-                project: { id: "p1", name: "demo", default_branch_id: "br1" },
-                branch: { id: "br1" },
-              }),
-            };
-          }
-          return { throws: true, stderr: "project already exists" };
+        if (isListCall(c)) {
+          return {
+            stdout: JSON.stringify([
+              { id: "p1", name: "DEMO", default_branch_id: "br1" },
+            ]),
+          };
         }
+        if (isCreateCall(c)) {
+          throw new Error("create should not be called when project exists");
+        }
+        if (isConnStringCall(c)) {
+          return {
+            stdout: JSON.stringify({ uri: "postgres://demo-existing" }),
+          };
+        }
+        return;
+      },
+    ]);
+
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    const refs = await create(ctx);
+    expect(refs.projectId).toBe("p1");
+    expect(calls.some(isCreateCall)).toBe(false);
+  });
+
+  it("is idempotent — second call returns the same connectionString without re-creating", async () => {
+    setHandlers([
+      (c) => {
         if (isListCall(c)) {
           return {
             stdout: JSON.stringify([
               { id: "p1", name: "demo", default_branch_id: "br1" },
             ]),
           };
+        }
+        if (isCreateCall(c)) {
+          throw new Error("create should not be called on idempotent retry");
         }
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
@@ -165,5 +185,6 @@ describe("neon.create", () => {
     const second = await create(ctx);
     expect(second.connectionString).toBe(first.connectionString);
     expect(second.projectId).toBe(first.projectId);
+    expect(calls.filter(isCreateCall)).toHaveLength(0);
   });
 });

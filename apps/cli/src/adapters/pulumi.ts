@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { execa } from "execa";
+import { join } from "pathe";
 import { LocalWorkspace } from "@pulumi/pulumi/automation/index.js";
 import type { Logger } from "../core/log.ts";
 import type { TokenBag } from "../core/tokens.ts";
@@ -10,6 +13,27 @@ export interface PulumiArgs {
   logger: Logger;
   /** Optional Pulumi config values to set on the stack before invoking up/preview/destroy. */
   config?: Record<string, string>;
+}
+
+/**
+ * Pulumi reads the program from `workDir` and expects `node_modules/` to be
+ * present (it executes via the local Pulumi SDK install). The scaffolder runs
+ * `bun install` at the project root but not in each Pulumi sub-program, so
+ * provision against a freshly-scaffolded project fails with "Pulumi SDK has
+ * not been installed". Install on demand when missing.
+ */
+async function ensureDepsInstalled(
+  workDir: string,
+  logger: Logger
+): Promise<void> {
+  if (existsSync(join(workDir, "node_modules"))) {
+    return;
+  }
+  if (!existsSync(join(workDir, "package.json"))) {
+    return;
+  }
+  logger.debug(`pulumi: installing deps in ${workDir}`);
+  await execa("bun", ["install"], { cwd: workDir, stdio: "pipe" });
 }
 
 function buildEnvVars(args: PulumiArgs): Record<string, string> {
@@ -25,6 +49,7 @@ function buildEnvVars(args: PulumiArgs): Record<string, string> {
 }
 
 async function selectOrCreateStack(args: PulumiArgs) {
+  await ensureDepsInstalled(args.workDir, args.logger);
   const envVars = buildEnvVars(args);
   const stack = await LocalWorkspace.createOrSelectStack(
     { stackName: args.stackName, workDir: args.workDir },

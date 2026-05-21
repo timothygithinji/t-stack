@@ -60,7 +60,8 @@ async function findExistingProject(
   } else {
     list = [];
   }
-  return list.find((p) => p.name === name);
+  const needle = name.toLowerCase();
+  return list.find((p) => p.name.toLowerCase() === needle);
 }
 
 async function fetchConnectionString(
@@ -98,21 +99,30 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
   const name = ctx.projectName;
   ctx.logger.debug(`neon.create name=${name}`);
 
-  const args = [
-    "projects",
-    "create",
-    "--name",
-    name,
-    ...orgArgs(ctx),
-    "--output",
-    "json",
-  ];
-
+  // Neon allows multiple projects with the same name and doesn't surface a
+  // "already exists" error on duplicate creation, so a naive POST would create
+  // a sibling project on every retry. Look up by name first (case-insensitive)
+  // to stay idempotent across re-runs.
   let projectId: string | undefined;
   let projectName = name;
   let branchId: string | undefined;
 
-  try {
+  const existing = await findExistingProject(ctx, name);
+  if (existing) {
+    ctx.logger.debug(`neon.create project ${name} already exists, reusing`);
+    projectId = existing.id;
+    projectName = existing.name;
+    branchId = existing.default_branch_id;
+  } else {
+    const args = [
+      "projects",
+      "create",
+      "--name",
+      name,
+      ...orgArgs(ctx),
+      "--output",
+      "json",
+    ];
     const { stdout } = await execa("neonctl", args, {
       stdio: "pipe",
       env: neonEnv(ctx),
@@ -121,22 +131,6 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
     projectId = parsed.project?.id;
     projectName = parsed.project?.name ?? name;
     branchId = parsed.branch?.id ?? parsed.project?.default_branch_id;
-  } catch (err) {
-    const stderr = (err as { stderr?: string }).stderr ?? "";
-    if (/already exists|duplicate/i.test(stderr)) {
-      ctx.logger.debug(`neon.create project ${name} already exists, fetching`);
-      const existing = await findExistingProject(ctx, name);
-      if (!existing) {
-        throw new Error(
-          `Neon reported project ${name} exists but it was not found in \`neonctl projects list\``
-        );
-      }
-      projectId = existing.id;
-      projectName = existing.name;
-      branchId = existing.default_branch_id;
-    } else {
-      throw err;
-    }
   }
 
   if (!projectId) {
