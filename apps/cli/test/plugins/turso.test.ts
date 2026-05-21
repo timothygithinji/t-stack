@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-type ExecaCall = { bin: string; args: string[] };
+interface ExecaCall {
+  bin: string;
+  args: string[];
+}
 type HandlerResult =
   | { stdout?: string; stderr?: string; exitCode?: number; throws?: true }
   | undefined;
@@ -82,7 +85,7 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_abc" };
         }
-        return undefined;
+        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -107,7 +110,7 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_existing" };
         }
-        return undefined;
+        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -133,7 +136,7 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_stable" };
         }
-        return undefined;
+        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });

@@ -32,7 +32,7 @@ function getRefs<T>(ctx: Ctx, ids: string[]): T | undefined {
       return refs as unknown as T;
     }
   }
-  return undefined;
+  return;
 }
 
 // Order: REVERSE of provision. App-layer first, foundational last.
@@ -183,7 +183,7 @@ export async function runDestroy(opts: DestroyOptions): Promise<void> {
     }));
   await ctx.state.read();
 
-  if (!opts.force && !opts.yes) {
+  if (!(opts.force || opts.yes)) {
     const ans = await p.confirm({
       message: `Destroy ALL resources for ${decisions.projectName}? This will delete cloud resources.`,
       initialValue: false,

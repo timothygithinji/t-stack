@@ -12,21 +12,19 @@ import {
 } from "vitest";
 
 // Stub execa BEFORE importing the plugin so its top-level imports are intercepted.
-const { execaMock } = vi.hoisted(() => {
-  return {
-    execaMock: vi.fn<
-      (
-        bin: string,
-        args?: string[],
-        opts?: unknown
-      ) => Promise<{ stdout: string; stderr: string; exitCode: number }>
-    >(async () => ({
-      stdout: "stub-doppler-token",
-      stderr: "",
-      exitCode: 0,
-    })),
-  };
-});
+const { execaMock } = vi.hoisted(() => ({
+  execaMock: vi.fn<
+    (
+      bin: string,
+      args?: string[],
+      opts?: unknown
+    ) => Promise<{ stdout: string; stderr: string; exitCode: number }>
+  >(async () => ({
+    stdout: "stub-doppler-token",
+    stderr: "",
+    exitCode: 0,
+  })),
+}));
 vi.mock("execa", () => ({
   execa: execaMock,
 }));

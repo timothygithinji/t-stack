@@ -13,6 +13,7 @@ import "../styles.css";
 function useReactGrab() {
   useEffect(() => {
     if (import.meta.env.DEV) {
+      // biome-ignore lint/complexity/noVoid: fire-and-forget dynamic import
       void import("react-grab");
     }
   }, []);

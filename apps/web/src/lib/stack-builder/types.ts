@@ -6,7 +6,7 @@ import type { Archetype, InitDecisions } from "@t-stack/schema";
  * Validation against initSchema happens when rendering the command and the
  * file preview.
  */
-export type DraftStack = {
+export interface DraftStack {
   archetype: Archetype;
   projectName: string;
   org: string;
@@ -16,7 +16,7 @@ export type DraftStack = {
   trigger: boolean;
   access: boolean;
   hookdeck: boolean;
-};
+}
 
 export const DEFAULT_STACK: DraftStack = {
   archetype: "solo-cf-worker",

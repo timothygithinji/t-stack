@@ -191,12 +191,12 @@ async function execGit(
     const res = await execa("git", args, {
       cwd: ctx.paths.cwd,
       stdio: "pipe",
-      ...(opts.input !== undefined ? { input: opts.input } : {}),
+      ...(opts.input === undefined ? {} : { input: opts.input }),
     });
     return { stdout: res.stdout, exitCode: res.exitCode ?? 0 };
   } catch (err) {
     if (opts.allowFail) {
-      return undefined;
+      return;
     }
     throw err;
   }

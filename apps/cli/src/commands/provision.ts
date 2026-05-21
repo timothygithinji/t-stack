@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
 import type { Ctx, PresetDef } from "../core/preset.ts";
-import { type StepFn, type StepRunner, makeStepRunner } from "../core/step.js";
 import { buildCtx, loadConfig, loadPreset } from "./_ctx.js";
 
 export interface ProvisionOptions {
@@ -16,23 +15,6 @@ export interface ProvisionOptions {
    * the persisted `t-stack.config.ts` doesn't store.
    */
   decisions?: import("../core/preset.ts").InitDecisions;
-}
-
-/**
- * Wrap a step runner so steps whose ids do not start with `prefix` are
- * silently no-ops (they don't run, they don't touch state).
- */
-function filteredRunner(base: StepRunner, prefix: string): StepRunner {
-  return (async <T extends Record<string, unknown>>(
-    id: string,
-    fn: StepFn<T>
-  ) => {
-    if (!id.startsWith(prefix)) {
-      // Returning an empty refs object keeps downstream destructuring safe.
-      return {} as T;
-    }
-    return base(id, fn);
-  }) as StepRunner;
 }
 
 /**
@@ -105,4 +87,3 @@ export const provisionCommand = defineCommand({
 });
 
 export default provisionCommand;
-export { filteredRunner, makeStepRunner };

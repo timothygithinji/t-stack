@@ -2,11 +2,9 @@ import {
   Boxes,
   Cloud,
   Database,
-  KeyRound,
   Layers,
   type LucideIcon,
   Network,
-  Package,
   ServerCog,
   Shield,
   Webhook,
@@ -155,6 +153,3 @@ export const CATEGORIES: readonly CategoryDef[] = [
     ],
   },
 ];
-
-void KeyRound;
-void Package;

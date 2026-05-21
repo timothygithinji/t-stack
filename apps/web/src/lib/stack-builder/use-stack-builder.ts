@@ -3,6 +3,8 @@ import { generateCommand } from "./command";
 import { type DraftStack, DEFAULT_STACK } from "./types";
 import { decodeStack, encodeStack } from "./url";
 
+const LEADING_QUESTION_MARK = /^\?/;
+
 interface UseStackBuilderResult {
   stack: DraftStack;
   setStack: (patch: Partial<DraftStack>) => void;
@@ -27,7 +29,9 @@ export function useStackBuilder(): UseStackBuilderResult {
     if (typeof window === "undefined") {
       return DEFAULT_STACK;
     }
-    return decodeStack(window.location.search.replace(/^\?/, ""));
+    return decodeStack(
+      window.location.search.replace(LEADING_QUESTION_MARK, "")
+    );
   });
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);

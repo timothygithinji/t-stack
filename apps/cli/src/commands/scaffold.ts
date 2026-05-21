@@ -8,7 +8,6 @@ import { createSpinner } from "../core/log.js";
 import { createOrgsStore } from "../core/orgs.js";
 import type {
   Archetype,
-  Ctx,
   Database,
   EnvScope,
   InitDecisions,
@@ -220,4 +219,4 @@ export const scaffoldCommand = defineCommand({
 });
 
 export default scaffoldCommand;
-export type { Ctx };
+export type { Ctx } from "../core/preset.ts";

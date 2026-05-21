@@ -330,7 +330,7 @@ export async function exportPerProjectSecret(
     const v = parsed[key];
     return typeof v === "string" && v.length > 0 ? v : undefined;
   } catch {
-    return undefined;
+    return;
   }
 }
 

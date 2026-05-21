@@ -22,14 +22,14 @@ function cfOutputsFromState(
     ctx.state.get("cloudflare.pulumiUp")?.refs ??
     ctx.state.get("cloudflare.up")?.refs;
   if (!refs) {
-    return undefined;
+    return;
   }
   const kvNamespaceId = refs.kvNamespaceId as string | undefined;
   const kvNamespaceTitle = refs.kvNamespaceTitle as string | undefined;
   const r2BucketName = refs.r2BucketName as string | undefined;
   const workerUrl = refs.workerUrl as string | undefined;
   if (!(kvNamespaceId && kvNamespaceTitle && r2BucketName && workerUrl)) {
-    return undefined;
+    return;
   }
   const out: cloudflare.CloudflareOutputs = {
     kvNamespaceId,
