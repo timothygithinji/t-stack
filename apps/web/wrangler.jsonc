@@ -4,6 +4,16 @@
   "main": "@tanstack/react-start/server-entry",
   "compatibility_date": "2025-05-01",
   "compatibility_flags": ["nodejs_compat"],
+  // Bind the worker to t-stack.timothygithinji.com. The apex
+  // (timothygithinji.com) must already exist as a Cloudflare zone in
+  // the same account the deploy runs against — wrangler will create the
+  // route + cert automatically on first deploy.
+  "routes": [
+    {
+      "pattern": "t-stack.timothygithinji.com",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true
   }
