@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { StackBuilder } from "@/components/stack-builder/stack-builder";
 
 export const Route = createFileRoute("/new")({
   component: StackBuilderPage,
@@ -6,18 +7,24 @@ export const Route = createFileRoute("/new")({
 
 function StackBuilderPage() {
   return (
-    <main className="min-h-screen w-full">
-      <header className="border-[var(--color-border)] border-b px-6 py-4">
-        <h1 className="font-mono text-[var(--color-muted-foreground)] text-sm uppercase tracking-wide">
-          t-stack stack builder
-        </h1>
+    <div className="flex h-screen flex-col bg-[var(--color-background)] text-[var(--color-foreground)]">
+      <header className="flex items-center justify-between border-[var(--color-border)] border-b px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm">t-stack</span>
+          <span className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+            stack builder
+          </span>
+        </div>
+        <a
+          className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide hover:text-[var(--color-foreground)]"
+          href="https://github.com/timothygithinji/t-stack"
+          rel="noreferrer"
+          target="_blank"
+        >
+          GitHub
+        </a>
       </header>
-      <section className="px-6 py-8">
-        <p className="text-[var(--color-muted-foreground)]">
-          Stack builder UI lands in the next commit. The scaffolding for
-          TanStack Start + Tailwind v4 + Cloudflare Workers is in place.
-        </p>
-      </section>
-    </main>
+      <StackBuilder />
+    </div>
   );
 }
