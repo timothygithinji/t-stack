@@ -67,13 +67,14 @@ export async function create(ctx: Ctx): Promise<TursoRefs> {
   let url = skipLookup ? undefined : await findExistingDb(name);
 
   if (url) {
-    ctx.logger.debug(`turso.create db ${name} already exists, reusing`);
+    ctx.logger.info(`turso.create: reusing existing db "${name}"`);
   } else {
     if (ctx.recreateMode === "adopt") {
       throw new Error(
         `turso.create asked to adopt an existing db "${name}" but none was found.`
       );
     }
+    ctx.logger.info(`turso.create: creating new db "${name}"`);
     try {
       await execa(
         "turso",

@@ -232,7 +232,7 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
     ? undefined
     : await findExistingProject(ctx, name);
   if (existing) {
-    ctx.logger.debug(`neon.create project ${name} already exists, reusing`);
+    ctx.logger.info(`neon.create: reusing existing project "${name}"`);
     projectId = existing.id;
     projectName = existing.name;
     branchId = existing.default_branch_id;
@@ -251,6 +251,9 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
     if (!(region || ctx.nonInteractive)) {
       region = await promptRegion();
     }
+    ctx.logger.info(
+      `neon.create: creating new project "${name}"${region ? ` in ${region}` : ""}`
+    );
     const args = [
       "projects",
       "create",

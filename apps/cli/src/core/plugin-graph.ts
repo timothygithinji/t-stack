@@ -103,18 +103,25 @@ async function invalidateDependents(
  * recreate — the resource is fine, we're just refreshing sensitive values.
  */
 async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateResult> {
-  if (!step.verify) {
-    return { proceed: true, recreated: false };
-  }
   await ctx.state.read();
   const existing = ctx.state.get(step.id);
-  if (existing?.status !== "completed") {
-    return { proceed: true, recreated: false };
+  const wasCompleted = existing?.status === "completed";
+
+  // No completed state → step is about to run "for real" (first init, or
+  // after the user explicitly cleared the entry). Signal `recreated` so
+  // downstream invalidations fire. For a brand-new init the dependents are
+  // also empty, so the cascade is a harmless no-op there.
+  if (!wasCompleted) {
+    return { proceed: true, recreated: true };
   }
-  if (hasRedactedValues(existing.refs ?? {})) {
+  if (hasRedactedValues(existing?.refs ?? {})) {
     // Redacted refs already force a re-run via the step runner, and re-running
     // self-heals via the plugin's lookup-first path. Verify would be redundant.
     // This is a cosmetic re-run, NOT a recreate — leave downstream alone.
+    return { proceed: true, recreated: false };
+  }
+  if (!step.verify) {
+    // Completed + clean refs + no verify → runner will skip; no cascade.
     return { proceed: true, recreated: false };
   }
 

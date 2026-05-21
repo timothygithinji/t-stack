@@ -51,6 +51,9 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
   // (GitHub doesn't allow same-name dup so we honor that by erroring).
   if (ctx.recreateMode === "adopt") {
     try {
+      ctx.logger.info(
+        `github.repo: adopting existing repo "${owner}/${name}" (recreateMode=adopt)`
+      );
       const existing = await gh.rest.repos.get({ owner, repo: name });
       return {
         owner: existing.data.owner.login,
@@ -79,6 +82,7 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
     me !== undefined && me.toLowerCase() === owner.toLowerCase();
 
   try {
+    ctx.logger.info(`github.repo: creating new repo "${owner}/${name}"`);
     const res = isUserOwner
       ? await gh.rest.repos.createForAuthenticatedUser({
           name,
@@ -108,9 +112,7 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
           `github.createRepo asked to create a new repo ${owner}/${name} but it already exists. Delete it on GitHub first or pick a different name.`
         );
       }
-      ctx.logger.debug(
-        `github.createRepo repo exists, fetching ${owner}/${name}`
-      );
+      ctx.logger.info(`github.repo: reusing existing repo "${owner}/${name}"`);
       const existing = await gh.rest.repos.get({ owner, repo: name });
       return {
         owner: existing.data.owner.login,

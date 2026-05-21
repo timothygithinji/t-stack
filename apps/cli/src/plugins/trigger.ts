@@ -121,12 +121,19 @@ export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
     ? undefined
     : await findProjectByName(ctx, ctx.projectName);
 
-  if (!project) {
+  if (project) {
+    ctx.logger.info(
+      `trigger.project: reusing existing project "${ctx.projectName}"`
+    );
+  } else {
     if (ctx.recreateMode === "adopt") {
       throw new Error(
         `trigger.createProject asked to adopt an existing project named "${ctx.projectName}" but none was found in Trigger.dev org "${ctx.org.triggerOrgSlug}".`
       );
     }
+    ctx.logger.info(
+      `trigger.project: creating new project "${ctx.projectName}" in org "${ctx.org.triggerOrgSlug}"`
+    );
     const created = await ofetch<TriggerProject | { project?: TriggerProject }>(
       `${TRIGGER_API_BASE}/orgs/${ctx.org.triggerOrgSlug}/projects`,
       {

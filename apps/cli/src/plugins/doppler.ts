@@ -163,10 +163,14 @@ export async function createProject(
         `doppler.createProject asked to adopt project "${slug}" but it was not found in the workplace.`
       );
     }
+    ctx.logger.info(
+      `doppler.project: adopting existing project "${existing.slug}" (recreateMode=adopt)`
+    );
     return { slug: existing.slug, name: existing.name };
   }
 
   try {
+    ctx.logger.info(`doppler.project: creating new project "${name}"`);
     const res = await ofetch<ProjectCreateResp>(
       `${DOPPLER_API_BASE}/projects`,
       {
@@ -190,7 +194,9 @@ export async function createProject(
       }
       const existing = await findProjectBySlug(token, slug);
       if (existing) {
-        ctx.logger.debug(`doppler.createProject reusing ${existing.slug}`);
+        ctx.logger.info(
+          `doppler.project: reusing existing project "${existing.slug}"`
+        );
         return { slug: existing.slug, name: existing.name };
       }
     }
