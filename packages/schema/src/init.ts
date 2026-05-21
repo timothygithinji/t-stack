@@ -97,8 +97,8 @@ const backend = z
         reason: "Hono needs a non-none runtime.",
       },
       "tanstack-start": {
-        incompatibilities: { runtime: ["workers"] },
-        reason: "tanstack-start backend doesn't run on Workers.",
+        dependencies: { frontend: ["tanstack-start"] },
+        reason: "tanstack-start backend requires the tanstack-start frontend.",
       },
     },
   });

@@ -169,9 +169,23 @@ describe("validateDecisions", () => {
     expect(violations).toEqual([]);
   });
 
-  it("flags backend=tanstack-start with runtime=workers", () => {
+  it("flags backend=tanstack-start without tanstack-start frontend", () => {
     const violations = validateDecisions(initSchema, {
       ...basePayload,
+      backend: "tanstack-start",
+      frontend: "none",
+    });
+    expect(
+      violations.some(
+        (v) => v.field === "backend" && v.value === "tanstack-start"
+      )
+    ).toBe(true);
+  });
+
+  it("accepts backend=tanstack-start when frontend=tanstack-start on workers", () => {
+    const violations = validateDecisions(initSchema, {
+      ...basePayload,
+      frontend: "tanstack-start",
       backend: "tanstack-start",
       runtime: "workers",
     });
@@ -179,6 +193,6 @@ describe("validateDecisions", () => {
       violations.some(
         (v) => v.field === "backend" && v.value === "tanstack-start"
       )
-    ).toBe(true);
+    ).toBe(false);
   });
 });
