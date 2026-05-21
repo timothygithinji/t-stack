@@ -28,7 +28,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Build a t-stack init command. Pick an archetype, configure options, copy the command.",
+          "Build a t-stack init command. Configure options, copy the command.",
       },
     ],
     links: [{ rel: "icon", href: "/favicon.ico" }],

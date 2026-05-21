@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { type FieldMeta, fieldMeta } from "./meta.js";
+import { fieldMeta } from "./meta.js";
+import { isFieldVisible } from "./predicates.js";
 
 const projectName = z
   .string()
@@ -23,6 +24,240 @@ const domain = z.string().min(1).register(fieldMeta, {
   description:
     "Fully-qualified domain. Defaults to <name>.<org.defaultDomain>.",
   defaultFrom: "{projectName}.{org.defaultDomain}",
+});
+
+const structure = z
+  .enum(["single", "monorepo"])
+  .default("single")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Project structure",
+    description: "Single app or monorepo with multiple workspaces.",
+  });
+
+const cloudProvider = z
+  .enum(["cloudflare", "none"])
+  .default("cloudflare")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Cloud provider",
+    valueRules: {
+      cloudflare: {
+        dependencies: { runtime: ["workers"] },
+        reason: "Cloudflare cloud provider requires Workers runtime.",
+      },
+    },
+  });
+
+const iac = z
+  .enum(["pulumi", "none"])
+  .default("pulumi")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Infrastructure as code",
+    valueRules: {
+      pulumi: {
+        dependencies: { cloudProvider: ["cloudflare"] },
+        reason: "Pulumi needs a cloud provider.",
+      },
+    },
+  });
+
+const runtime = z
+  .enum(["workers", "node", "bun", "none"])
+  .default("workers")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Runtime",
+    valueRules: {
+      workers: {
+        dependencies: { cloudProvider: ["cloudflare"] },
+        reason: "Workers runtime requires Cloudflare.",
+      },
+    },
+  });
+
+const frontend = z
+  .enum(["tanstack-start", "tanstack-router", "astro", "none"])
+  .default("none")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Frontend",
+  });
+
+const backend = z
+  .enum(["hono", "tanstack-start", "none"])
+  .default("hono")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Backend",
+    valueRules: {
+      hono: {
+        incompatibilities: { runtime: ["none"] },
+        reason: "Hono needs a non-none runtime.",
+      },
+      "tanstack-start": {
+        incompatibilities: { runtime: ["workers"] },
+        reason: "tanstack-start backend doesn't run on Workers.",
+      },
+    },
+  });
+
+const docs = z
+  .enum(["starlight", "none"])
+  .default("none")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Docs site",
+    visibleIf: { structure: "monorepo" },
+    valueRules: {
+      starlight: {
+        dependencies: { structure: ["monorepo"] },
+        reason: "Docs site lives at apps/docs in monorepo.",
+      },
+    },
+  });
+
+const api = z
+  .enum(["orpc", "none"])
+  .default("none")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "API style",
+    valueRules: {
+      orpc: {
+        dependencies: { backend: ["hono", "tanstack-start"] },
+        reason: "API style requires a backend.",
+      },
+    },
+  });
+
+const database = z
+  .enum(["postgres", "sqlite", "none"])
+  .default("postgres")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Database",
+  });
+
+const databaseHost = z
+  .enum(["neon", "turso", "d1", "none"])
+  .default("neon")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Database host",
+    valueRules: {
+      neon: {
+        dependencies: { database: ["postgres"] },
+        reason: "Neon hosts Postgres.",
+      },
+      turso: {
+        dependencies: { database: ["sqlite"] },
+        reason: "Turso hosts SQLite.",
+      },
+      d1: {
+        dependencies: {
+          database: ["sqlite"],
+          cloudProvider: ["cloudflare"],
+        },
+        reason: "D1 is a Cloudflare SQLite service.",
+      },
+    },
+  });
+
+const orm = z
+  .enum(["drizzle", "none"])
+  .default("drizzle")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "ORM",
+    valueRules: {
+      drizzle: {
+        dependencies: { database: ["postgres", "sqlite"] },
+        reason: "Drizzle needs a database.",
+      },
+    },
+  });
+
+const auth = z
+  .enum(["better-auth", "none"])
+  .default("better-auth")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Auth",
+    valueRules: {
+      "better-auth": {
+        dependencies: {
+          database: ["postgres", "sqlite"],
+          orm: ["drizzle"],
+        },
+        reason: "Better Auth needs a database + ORM.",
+      },
+    },
+  });
+
+const storage = z
+  .enum(["r2", "tigris", "none"])
+  .default("none")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Object storage",
+    valueRules: {
+      r2: {
+        dependencies: { cloudProvider: ["cloudflare"] },
+        reason: "R2 is a Cloudflare service.",
+      },
+    },
+  });
+
+const payments = z
+  .enum(["stripe", "none"])
+  .default("none")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Payments",
+  });
+
+const addons = z
+  .array(
+    z.enum([
+      "biome",
+      "husky",
+      "turborepo",
+      "fallow",
+      "commitlint",
+      "release-it",
+      "ultracite",
+    ])
+  )
+  .default([])
+  .register(fieldMeta, {
+    ui: "multiselect",
+    label: "Addons",
+    valueRules: {
+      turborepo: {
+        dependencies: { structure: ["monorepo"] },
+        reason: "Turborepo is for monorepos.",
+      },
+    },
+  });
+
+const packageManager = z
+  .enum(["bun", "pnpm"])
+  .default("bun")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Package manager",
+  });
+
+const git = z.boolean().default(true).register(fieldMeta, {
+  ui: "toggle",
+  label: "Initialize git repo?",
+});
+
+const install = z.boolean().default(true).register(fieldMeta, {
+  ui: "toggle",
+  label: "Install dependencies?",
 });
 
 const envs = z
@@ -61,87 +296,59 @@ const hookdeckApiKey = z
     source: "env:HOOKDECK_API_KEY",
   });
 
-const soloDatabase = z
-  .enum(["neon", "turso"])
-  .default("neon")
-  .register(fieldMeta, {
-    ui: "select",
-    label: "Database",
-  });
-
-const soloSchema = z.object({
-  archetype: z.literal("solo-cf-worker"),
+export const initSchema = z.object({
   projectName,
   org,
   domain,
-  database: soloDatabase,
+  structure,
+  cloudProvider,
+  iac,
+  runtime,
+  frontend,
+  backend,
+  docs,
+  api,
+  database,
+  databaseHost,
+  orm,
+  auth,
+  storage,
+  payments,
+  addons,
+  packageManager,
+  git,
+  install,
   envs,
   trigger,
   access,
   hookdeck,
   hookdeckApiKey,
 });
-
-const monoSchema = z.object({
-  archetype: z.literal("monorepo-cf"),
-  projectName,
-  org,
-  domain,
-  envs,
-  trigger,
-  access,
-  hookdeck,
-  hookdeckApiKey,
-});
-
-export const initSchema = z.discriminatedUnion("archetype", [
-  soloSchema,
-  monoSchema,
-]);
 
 export type InitDecisions = z.infer<typeof initSchema>;
-export type Archetype = InitDecisions["archetype"];
 export type EnvScope = z.infer<typeof envs>;
-export type Database = z.infer<typeof soloDatabase>;
 
 /**
- * Returns the database for any archetype. Mono is implicitly neon — the schema
- * doesn't carry a `database` field on it, but downstream code (template vars,
- * scaffold.ts) needs a value either way.
+ * Walk the schema and return every visible field's [name, zod schema, meta]
+ * tuple, in declaration order. Fields whose `visibleIf` predicate fails
+ * against `decisions` are skipped.
  */
-export function effectiveDatabase(d: InitDecisions): Database {
-  if (d.archetype === "monorepo-cf") {
-    return "neon";
-  }
-  return d.database;
-}
-
-/**
- * Walk the schema and return every field's [path, zod schema, meta] tuple,
- * in declaration order. Used by the CLI to build citty args / clack prompts,
- * and by the web app to render form fields.
- *
- * The walk respects the active archetype: when `archetype` is `solo-cf-worker`
- * the result includes `database`, otherwise it doesn't.
- */
-export function fieldsForArchetype(archetype: Archetype): Array<{
+export function walkFields(decisions: Record<string, unknown>): Array<{
   name: string;
   schema: z.ZodTypeAny;
-  meta: FieldMeta;
+  meta: import("./meta.js").FieldMeta;
 }> {
-  const variant = archetype === "solo-cf-worker" ? soloSchema : monoSchema;
-  const shape = variant.shape;
   const result: Array<{
     name: string;
     schema: z.ZodTypeAny;
-    meta: FieldMeta;
+    meta: import("./meta.js").FieldMeta;
   }> = [];
-  for (const [name, schema] of Object.entries(shape)) {
-    if (name === "archetype") {
-      continue;
-    }
+  for (const [name, schema] of Object.entries(initSchema.shape)) {
     const meta = fieldMeta.get(schema as z.ZodTypeAny);
     if (!meta) {
+      continue;
+    }
+    if (!isFieldVisible(meta, decisions)) {
       continue;
     }
     result.push({ name, schema: schema as z.ZodTypeAny, meta });

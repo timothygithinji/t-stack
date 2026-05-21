@@ -1,3 +1,0 @@
-config:
-  {{projectName}}-hookdeck:domain: {{domain}}
-  # hookdeck:apiKey is injected by `t-stack provision` from Doppler / env.

@@ -7,7 +7,7 @@ import { createOrgsStore } from "../core/orgs.js";
 import type { Ctx, InitDecisions } from "../core/preset.ts";
 import { createStateStore } from "../core/state.js";
 import * as doppler from "../plugins/doppler.js";
-import { buildPaths } from "./_ctx.js";
+import { buildPaths, loadPreset } from "./_ctx.js";
 
 const META_PROJECT_SLUG = "t-stack";
 const META_CONFIG = "prd";
@@ -129,9 +129,25 @@ export const loginCommand = defineCommand({
       const decisions: InitDecisions = {
         org: org.name,
         projectName: META_PROJECT_SLUG,
-        archetype: "solo-cf-worker",
         domain: org.defaultDomain,
-        database: "neon",
+        structure: "single",
+        cloudProvider: "cloudflare",
+        iac: "pulumi",
+        runtime: "workers",
+        frontend: "none",
+        backend: "hono",
+        docs: "none",
+        api: "none",
+        database: "postgres",
+        databaseHost: "neon",
+        orm: "drizzle",
+        auth: "better-auth",
+        storage: "none",
+        payments: "none",
+        addons: [],
+        packageManager: "bun",
+        git: true,
+        install: true,
         envs: "prd",
         trigger: false,
         access: false,
@@ -140,10 +156,14 @@ export const loginCommand = defineCommand({
       const paths = buildPaths(process.cwd());
       const logger = createLogger();
       const state = createStateStore(paths.stateFile);
+      // login doesn't actually run a preset — it just needs a Ctx-shaped value
+      // so the doppler plugin helpers (slug/scope) work. We pick solo-cf-worker
+      // as a placeholder; the `run()` body is never invoked here.
+      const preset = await loadPreset("solo-cf-worker", paths.cliRoot);
       const ctx: Ctx = {
         org,
         projectName: META_PROJECT_SLUG,
-        archetype: decisions.archetype,
+        preset,
         decisions,
         paths,
         logger,

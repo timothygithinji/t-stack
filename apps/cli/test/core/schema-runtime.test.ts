@@ -1,4 +1,4 @@
-import { fieldsForArchetype } from "@t-stack/schema";
+import { walkFields } from "@t-stack/schema";
 import { describe, expect, it } from "vitest";
 import {
   buildCittyArgs,
@@ -24,16 +24,15 @@ describe("buildCittyArgs", () => {
     expect(args.name).toEqual(expect.objectContaining({ type: "positional" }));
     expect(args.yes).toEqual(expect.objectContaining({ type: "boolean" }));
     expect(args.cwd).toEqual(expect.objectContaining({ type: "string" }));
+    expect(args.preset).toEqual(expect.objectContaining({ type: "string" }));
   });
 
   it("emits a flag for every schema field, kebab-cased", () => {
-    for (const archetype of ["solo-cf-worker", "monorepo-cf"] as const) {
-      for (const field of fieldsForArchetype(archetype)) {
-        if (field.name === "projectName") {
-          continue; // positional, not a flag
-        }
-        expect(args[kebabName(field.name)]).toBeDefined();
+    for (const field of walkFields({})) {
+      if (field.name === "projectName") {
+        continue; // positional, not a flag
       }
+      expect(args[kebabName(field.name)]).toBeDefined();
     }
   });
 
@@ -41,6 +40,18 @@ describe("buildCittyArgs", () => {
     expect(args.trigger).toEqual(expect.objectContaining({ type: "boolean" }));
     expect(args.access).toEqual(expect.objectContaining({ type: "boolean" }));
     expect(args.envs).toEqual(expect.objectContaining({ type: "string" }));
+    expect(args["hookdeck-api-key"]).toEqual(
+      expect.objectContaining({ type: "string" })
+    );
+  });
+
+  it("does not emit an --archetype flag (replaced by --structure)", () => {
+    expect(args.archetype).toBeUndefined();
+    expect(args.structure).toEqual(expect.objectContaining({ type: "string" }));
+  });
+
+  it("emits flags for visibleIf-gated fields (docs, hookdeck-api-key)", () => {
+    expect(args.docs).toEqual(expect.objectContaining({ type: "string" }));
     expect(args["hookdeck-api-key"]).toEqual(
       expect.objectContaining({ type: "string" })
     );
@@ -78,7 +89,7 @@ describe("matchesVisibleIf", () => {
 
 describe("enumChoices + defaultOf", () => {
   it("extracts enum choices through .default() wrappers", () => {
-    const fields = fieldsForArchetype("solo-cf-worker");
+    const fields = walkFields({});
     const envsField = fields.find((f) => f.name === "envs");
     expect(envsField).toBeDefined();
     if (envsField) {
@@ -92,11 +103,22 @@ describe("enumChoices + defaultOf", () => {
   });
 
   it("returns undefined for non-enum schemas", () => {
-    const fields = fieldsForArchetype("solo-cf-worker");
+    const fields = walkFields({});
     const projectNameField = fields.find((f) => f.name === "projectName");
     expect(projectNameField).toBeDefined();
     if (projectNameField) {
       expect(enumChoices(projectNameField.schema)).toBeUndefined();
+    }
+  });
+
+  it("extracts inner enum from array(enum) multiselect fields", () => {
+    const fields = walkFields({ structure: "monorepo" });
+    const addonsField = fields.find((f) => f.name === "addons");
+    expect(addonsField).toBeDefined();
+    if (addonsField) {
+      const choices = enumChoices(addonsField.schema);
+      expect(choices).toContain("biome");
+      expect(choices).toContain("turborepo");
     }
   });
 });

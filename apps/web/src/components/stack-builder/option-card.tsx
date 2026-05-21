@@ -12,10 +12,11 @@ interface OptionCardProps {
 }
 
 /**
- * Visual selection card used inside Archetype / Database / Environments /
- * Add-ons sections. Selected state shows a primary highlight and a check
- * badge; disabled cards show a muted destructive border and a reason on
- * hover (typically a cross-field incompatibility like "Turso needs solo").
+ * Visual selection card used inside every category section (Structure,
+ * Infra, App, Data, Features, Add-ons, Tooling, Toggles). Selected state
+ * shows a primary highlight and a check badge; disabled cards show a
+ * muted destructive border and a reason on hover (typically a cross-field
+ * incompatibility from the schema's `valueRules`, e.g. "Turso hosts SQLite").
  */
 export function OptionCard({
   label,

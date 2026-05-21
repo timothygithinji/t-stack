@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { defineCommand } from "citty";
 import type { Ctx, PresetDef } from "../core/preset.ts";
-import { buildCtx, loadConfig, loadPreset } from "./_ctx.js";
+import { buildCtx, loadConfig } from "./_ctx.js";
 
 export interface ProvisionOptions {
   cwd: string;
@@ -16,6 +16,8 @@ export interface ProvisionOptions {
    * the persisted `t-stack.config.ts` doesn't store.
    */
   decisions?: import("../core/preset.ts").InitDecisions;
+  /** Explicit preset id, used when neither `ctx` nor `preset` is supplied. */
+  presetId?: string;
 }
 
 /**
@@ -38,7 +40,13 @@ export async function runProvision(opts: ProvisionOptions): Promise<void> {
     opts.ctx?.decisions ?? opts.decisions ?? (await loadConfig(opts.cwd));
   const ctx: ProvisionCtx =
     opts.ctx ??
-    (await buildCtx({ cwd: opts.cwd, decisions, nonInteractive: true }));
+    (await buildCtx({
+      cwd: opts.cwd,
+      decisions,
+      nonInteractive: true,
+      preset: opts.preset,
+      presetId: opts.presetId,
+    }));
 
   if (opts.only) {
     ctx.__onlyPrefix = opts.only;
@@ -47,8 +55,7 @@ export async function runProvision(opts: ProvisionOptions): Promise<void> {
     // and may consult `ctx.__onlyPrefix`.
   }
 
-  const preset =
-    opts.preset ?? (await loadPreset(decisions.archetype, ctx.paths.cliRoot));
+  const preset = opts.preset ?? ctx.preset;
 
   try {
     await preset.run(ctx);
