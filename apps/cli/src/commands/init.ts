@@ -1,16 +1,24 @@
 import { existsSync } from "node:fs";
 import * as p from "@clack/prompts";
+import {
+  type Archetype,
+  type FieldMeta,
+  type InitDecisions,
+  fieldsForArchetype,
+  initSchema,
+} from "@t-stack/schema";
 import { defineCommand } from "citty";
 import { execa } from "execa";
 import { isAbsolute, join, resolve } from "pathe";
+import type { z } from "zod";
 import { createOrgsStore } from "../core/orgs.js";
-import type {
-  Archetype,
-  Database,
-  EnvScope,
-  InitDecisions,
-  OrgProfile,
-} from "../core/preset.ts";
+import type { OrgProfile } from "../core/preset.ts";
+import {
+  buildCittyArgs,
+  defaultResolver,
+  kebabName,
+  matchesVisibleIf,
+} from "../core/schema-runtime.js";
 import { loadTokens } from "../core/tokens.js";
 import { discoverZoneViaCfApi, resolveZoneForDomain } from "../core/zones.js";
 import { orgScope as dopplerOrgScope } from "../plugins/doppler.js";
@@ -18,31 +26,10 @@ import { runDeploy } from "./deploy.js";
 import { runProvision } from "./provision.js";
 import { runScaffold } from "./scaffold.js";
 
-const ARCHETYPES: readonly Archetype[] = [
+const ARCHETYPES = [
   "solo-cf-worker",
   "monorepo-cf",
-] as const;
-const ENV_SCOPES: readonly EnvScope[] = [
-  "prd",
-  "dev+prd",
-  "dev+stg+prd",
-] as const;
-const DATABASES: readonly Database[] = ["neon", "turso"] as const;
-
-interface InitFlags {
-  name?: string;
-  org?: string;
-  archetype?: string;
-  domain?: string;
-  db?: string;
-  envs?: string;
-  trigger?: boolean;
-  access?: boolean;
-  hookdeck?: boolean;
-  "hookdeck-api-key"?: string;
-  yes?: boolean;
-  cwd?: string;
-}
+] as const satisfies readonly Archetype[];
 
 function bail(msg: string): never {
   p.log.error(msg);
@@ -71,20 +58,6 @@ async function pickOrg(initial?: string): Promise<string> {
     bail("Cancelled.");
   }
   return choice as string;
-}
-
-async function promptIfMissing<T extends string>(
-  value: T | undefined,
-  prompt: () => Promise<T | symbol>
-): Promise<T> {
-  if (value !== undefined && value !== null && `${value}`.length > 0) {
-    return value;
-  }
-  const v = await prompt();
-  if (p.isCancel(v)) {
-    bail("Cancelled.");
-  }
-  return v as T;
 }
 
 export interface RunInitOptions {
@@ -183,197 +156,65 @@ export const initCommand = defineCommand({
     name: "init",
     description: "Bootstrap a new t-stack project (scaffold + provision).",
   },
-  args: {
-    name: { type: "positional", required: false, description: "Project name" },
-    org: { type: "string", description: "Org slug from orgs.toml" },
-    archetype: { type: "string", description: "solo-cf-worker | monorepo-cf" },
-    domain: {
-      type: "string",
-      description: "FQDN (default: <name>.<org.defaultDomain>)",
-    },
-    db: {
-      type: "string",
-      description: "neon | turso (turso requires solo-cf-worker)",
-    },
-    envs: { type: "string", description: "prd | dev+prd | dev+stg+prd" },
-    trigger: {
-      type: "boolean",
-      description:
-        "Enable Trigger.dev (use --no-trigger to disable; default true in --yes mode)",
-    },
-    access: {
-      type: "boolean",
-      description:
-        "Protect with Cloudflare Access (use --no-access to skip; default off in --yes mode)",
-    },
-    hookdeck: {
-      type: "boolean",
-      description:
-        "Add Hookdeck inbound webhooks (use --no-hookdeck to skip; default off in --yes mode)",
-    },
-    "hookdeck-api-key": {
-      type: "string",
-      description:
-        "Hookdeck project API key (per-project; only used when --hookdeck is set). Falls back to $HOOKDECK_API_KEY env var.",
-    },
-    yes: {
-      type: "boolean",
-      description: "Non-interactive — require all args via flags",
-    },
-    cwd: { type: "string", description: "Parent directory (default: cwd)" },
-  },
+  args: buildCittyArgs(),
   async run({ args }) {
     try {
-      const flags = args as unknown as InitFlags;
-      const yes = Boolean(flags.yes);
-      const cwd = flags.cwd ?? process.cwd();
+      const yes = Boolean(args.yes);
+      const cwd = (args.cwd as string | undefined) ?? process.cwd();
 
-      // Resolve org.
-      const orgName = await pickOrg(flags.org);
+      // org and archetype are resolved up-front: org because it sources from
+      // a non-zod store (orgs.toml) and seeds the domain default; archetype
+      // because it selects which schema variant to iterate.
+      const orgName = await pickOrg(args.org as string | undefined);
       const orgs = createOrgsStore();
       const orgProfile = await orgs.get(orgName);
       if (!orgProfile) {
         bail(`Org "${orgName}" not found.`);
       }
-
-      // Project name.
-      const projectName = await promptIfMissing<string>(
-        flags.name ?? (args._?.[0] as string | undefined),
-        async () =>
-          p.text({
-            message: "Project name?",
-            placeholder: "my-app",
-            validate: (v) =>
-              v && /^[a-z0-9][a-z0-9-]*$/.test(v)
-                ? undefined
-                : "lowercase letters, digits and dashes only",
-          })
+      const archetype = await pickArchetype(
+        args.archetype as string | undefined,
+        yes
       );
 
-      // Archetype.
-      const archetypeRaw =
-        flags.archetype ??
-        (yes
-          ? "solo-cf-worker"
-          : await (async () => {
-              const v = await p.select({
-                message: "Archetype?",
-                options: ARCHETYPES.map((a) => ({ value: a, label: a })),
-                initialValue: "solo-cf-worker",
-              });
-              if (p.isCancel(v)) {
-                bail("Cancelled.");
-              }
-              return v as string;
-            })());
-      if (!ARCHETYPES.includes(archetypeRaw as Archetype)) {
-        bail(
-          `Invalid archetype "${archetypeRaw}". Expected one of: ${ARCHETYPES.join(", ")}`
-        );
-      }
-      const archetype = archetypeRaw as Archetype;
-
-      // Domain.
-      const defaultDomain = `${projectName}.${orgProfile.defaultDomain}`;
-      const domain = await promptIfMissing<string>(flags.domain, async () =>
-        p.text({
-          message: "Domain?",
-          initialValue: defaultDomain,
-          placeholder: defaultDomain,
-        })
-      );
-
-      // Database.
-      let dbRaw = flags.db;
-      if (!dbRaw && !yes) {
-        const allowed =
-          archetype === "solo-cf-worker" ? DATABASES : (["neon"] as const);
-        const v = await p.select({
-          message: "Database?",
-          options: allowed.map((d) => ({ value: d, label: d })),
-          initialValue: "neon",
-        });
-        if (p.isCancel(v)) {
-          bail("Cancelled.");
-        }
-        dbRaw = v as string;
-      }
-      dbRaw = dbRaw ?? "neon";
-      if (!DATABASES.includes(dbRaw as Database)) {
-        bail(
-          `Invalid database "${dbRaw}". Expected one of: ${DATABASES.join(", ")}`
-        );
-      }
-      if (dbRaw === "turso" && archetype !== "solo-cf-worker") {
-        bail("Turso is only supported with the solo-cf-worker archetype.");
-      }
-      const database = dbRaw as Database;
-
-      // Envs.
-      let envsRaw = flags.envs;
-      if (!envsRaw && !yes) {
-        const v = await p.select({
-          message: "Environments?",
-          options: ENV_SCOPES.map((e) => ({ value: e, label: e })),
-          initialValue: "prd",
-        });
-        if (p.isCancel(v)) {
-          bail("Cancelled.");
-        }
-        envsRaw = v as string;
-      }
-      envsRaw = envsRaw ?? "prd";
-      if (!ENV_SCOPES.includes(envsRaw as EnvScope)) {
-        bail(
-          `Invalid envs "${envsRaw}". Expected one of: ${ENV_SCOPES.join(", ")}`
-        );
-      }
-      const envs = envsRaw as EnvScope;
-
-      // Booleans.
-      const trigger = await resolveBool(
-        flags.trigger,
-        true,
-        yes,
-        "Enable Trigger.dev?"
-      );
-      const access = await resolveBool(
-        flags.access,
-        false,
-        yes,
-        "Protect with Cloudflare Access?"
-      );
-      const hookdeck = await resolveBool(
-        flags.hookdeck,
-        false,
-        yes,
-        "Add Hookdeck inbound webhooks?"
-      );
-
-      const hookdeckApiKey = hookdeck
-        ? await resolveHookdeckApiKey({
-            flagValue: flags["hookdeck-api-key"],
-            orgName,
-            projectName,
-            yes,
-          })
-        : undefined;
-
-      await ensureZoneForDomain(orgProfile, domain, yes);
-
-      const decisions: InitDecisions = {
-        org: orgName,
-        projectName,
+      // Schema-driven loop: walk every field declared on the active variant
+      // and resolve via the runtime helper (flag → defaultFrom → schema default
+      // → prompt). Pre-seed `org` / `projectName` so the loop's defaultFrom
+      // templates can reference them.
+      const projectNameFlag =
+        (args.name as string | undefined) ??
+        (args._?.[0] as string | undefined);
+      const values: Record<string, unknown> = {
         archetype,
-        domain,
-        database,
-        envs,
-        trigger,
-        access,
-        hookdeck,
-        ...(hookdeckApiKey ? { hookdeckApiKey } : {}),
+        org: orgName,
+        // `org` object exposed only to defaultFrom templates (not validated by schema).
       };
 
+      for (const field of fieldsForArchetype(archetype)) {
+        if (
+          field.meta.visibleIf &&
+          !matchesVisibleIf(field.meta.visibleIf, values)
+        ) {
+          continue;
+        }
+        // Pre-resolved fields skip the prompt loop.
+        if (field.name === "org") {
+          continue;
+        }
+        const flagValue = readFlag(field, args, projectNameFlag);
+        values[field.name] = await resolveField({
+          field,
+          flagValue,
+          orgProfile,
+          orgName,
+          yes,
+          values,
+        });
+      }
+
+      const domain = String(values.domain ?? "");
+      await ensureZoneForDomain(orgProfile, domain, yes);
+
+      const decisions = initSchema.parse(values);
       await runInit(decisions, { cwd, yes });
     } catch (err) {
       p.log.error(`init failed: ${(err as Error).message}`);
@@ -381,6 +222,77 @@ export const initCommand = defineCommand({
     }
   },
 });
+
+interface ResolveFieldArgs {
+  field: { name: string; schema: z.ZodTypeAny; meta: FieldMeta };
+  flagValue: unknown;
+  orgProfile: OrgProfile;
+  orgName: string;
+  yes: boolean;
+  values: Record<string, unknown>;
+}
+
+async function resolveField(args: ResolveFieldArgs): Promise<unknown> {
+  // Special case: hookdeck-api-key has a multi-source fallback chain
+  // (flag → env → Doppler → prompt). The schema's `source` meta marks the
+  // env step but can't express the chain alone.
+  if (args.field.name === "hookdeckApiKey" && args.values.hookdeck) {
+    return await resolveHookdeckApiKey({
+      flagValue: args.flagValue as string | undefined,
+      orgName: args.orgName,
+      projectName: String(args.values.projectName ?? ""),
+      yes: args.yes,
+    });
+  }
+
+  return defaultResolver({
+    name: args.field.name,
+    schema: args.field.schema,
+    meta: args.field.meta,
+    flagValue: args.flagValue,
+    // `org.defaultDomain` is referenced by the `domain` field's defaultFrom
+    // template — expose the org profile under the `org` key for that lookup.
+    values: { ...args.values, org: args.orgProfile },
+    nonInteractive: args.yes,
+  });
+}
+
+function readFlag(
+  field: { name: string },
+  args: Record<string, unknown>,
+  projectNameFlag: string | undefined
+): unknown {
+  if (field.name === "projectName") {
+    return projectNameFlag;
+  }
+  return args[kebabName(field.name)];
+}
+
+async function pickArchetype(
+  flagValue: string | undefined,
+  yes: boolean
+): Promise<Archetype> {
+  if (flagValue) {
+    if (!ARCHETYPES.includes(flagValue as Archetype)) {
+      bail(
+        `Invalid archetype "${flagValue}". Expected one of: ${ARCHETYPES.join(", ")}`
+      );
+    }
+    return flagValue as Archetype;
+  }
+  if (yes) {
+    return "solo-cf-worker";
+  }
+  const v = await p.select({
+    message: "Archetype?",
+    options: ARCHETYPES.map((a) => ({ value: a, label: a })),
+    initialValue: "solo-cf-worker",
+  });
+  if (p.isCancel(v)) {
+    bail("Cancelled.");
+  }
+  return v as Archetype;
+}
 
 function apexFor(domain: string): string {
   const parts = domain.split(".").filter(Boolean);
@@ -545,30 +457,6 @@ async function resolveHookdeckApiKey(
     bail("Hookdeck is enabled but no API key was provided.");
   }
   return key;
-}
-
-async function resolveBool(
-  flagValue: boolean | undefined,
-  defaultValue: boolean,
-  yes: boolean,
-  message: string
-): Promise<boolean> {
-  // Citty handles --no-X natively by setting the flag to false; explicit --X
-  // sets to true; absent flag leaves it undefined.
-  if (flagValue === true) {
-    return true;
-  }
-  if (flagValue === false) {
-    return false;
-  }
-  if (yes) {
-    return defaultValue;
-  }
-  const v = await p.confirm({ message, initialValue: defaultValue });
-  if (p.isCancel(v)) {
-    bail("Cancelled.");
-  }
-  return Boolean(v);
 }
 
 export default initCommand;

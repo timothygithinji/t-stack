@@ -1,5 +1,6 @@
 import * as p from "@clack/prompts";
 import { defineCommand } from "citty";
+import { effectiveDatabase } from "@t-stack/schema";
 import type { Ctx } from "../core/preset.ts";
 import * as cloudflare from "../plugins/cloudflare.js";
 import * as doppler from "../plugins/doppler.js";
@@ -193,7 +194,11 @@ export async function runDestroy(opts: DestroyOptions): Promise<void> {
     }
   }
 
-  const teardowns = buildTeardowns(decisions);
+  const teardowns = buildTeardowns({
+    database: effectiveDatabase(decisions),
+    trigger: decisions.trigger,
+    hookdeck: decisions.hookdeck,
+  });
   const only = opts.only;
 
   for (const t of teardowns) {

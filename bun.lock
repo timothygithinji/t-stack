@@ -26,6 +26,8 @@
         "@octokit/rest": "22.0.1",
         "@pulumi/cloudflare": "6.16.0",
         "@pulumi/pulumi": "3.242.0",
+        "@t-stack/presets": "workspace:*",
+        "@t-stack/schema": "workspace:*",
         "@t-stack/templating": "workspace:*",
         "citty": "0.2.2",
         "comment-json": "5.0.0",

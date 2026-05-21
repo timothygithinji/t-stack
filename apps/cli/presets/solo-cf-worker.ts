@@ -19,38 +19,6 @@ export default definePreset({
   id: "solo-cf-worker",
   description: "Single Vite + CF Workers app",
   templates: ["_base", "solo-cf-worker"],
-  prompts: [
-    {
-      id: "database",
-      type: "select",
-      choices: ["neon", "turso"],
-      default: "neon",
-    },
-    {
-      id: "envs",
-      type: "select",
-      choices: ["prd", "dev+prd", "dev+stg+prd"],
-      default: "dev+prd",
-    },
-    {
-      id: "trigger",
-      type: "confirm",
-      message: "Enable Trigger.dev?",
-      default: true,
-    },
-    {
-      id: "access",
-      type: "confirm",
-      message: "Protect with Cloudflare Access?",
-      default: false,
-    },
-    {
-      id: "hookdeck",
-      type: "confirm",
-      message: "Add Hookdeck for webhooks?",
-      default: false,
-    },
-  ],
   async run(ctx: Ctx) {
     const step = makeStepRunner(ctx);
 
@@ -63,10 +31,12 @@ export default definePreset({
       bag(await github.createRepo(ctx))
     );
 
-    const db =
-      ctx.decisions.database === "turso"
-        ? await step("turso.create", async () => bag(await turso.create(ctx)))
-        : await step("neon.create", async () => bag(await neon.create(ctx)));
+    const usingTurso =
+      ctx.decisions.archetype === "solo-cf-worker" &&
+      ctx.decisions.database === "turso";
+    const db = usingTurso
+      ? await step("turso.create", async () => bag(await turso.create(ctx)))
+      : await step("neon.create", async () => bag(await neon.create(ctx)));
 
     const trg = ctx.decisions.trigger
       ? await step("trigger.project", async () =>

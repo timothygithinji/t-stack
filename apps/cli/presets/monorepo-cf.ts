@@ -18,32 +18,6 @@ export default definePreset({
   id: "monorepo-cf",
   description: "Bun workspaces + Turbo monorepo",
   templates: ["_base", "monorepo-cf"],
-  prompts: [
-    {
-      id: "envs",
-      type: "select",
-      choices: ["prd", "dev+prd", "dev+stg+prd"],
-      default: "dev+prd",
-    },
-    {
-      id: "trigger",
-      type: "confirm",
-      message: "Enable Trigger.dev?",
-      default: true,
-    },
-    {
-      id: "access",
-      type: "confirm",
-      message: "Protect with Cloudflare Access?",
-      default: false,
-    },
-    {
-      id: "hookdeck",
-      type: "confirm",
-      message: "Add Hookdeck for webhooks?",
-      default: false,
-    },
-  ],
   async run(ctx: Ctx) {
     const step = makeStepRunner(ctx);
 
