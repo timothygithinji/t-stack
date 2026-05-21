@@ -43,7 +43,6 @@
     "prepack": "bun run copy-templates && bun run scripts/prepare-publish.ts",
     "postpack": "bun run scripts/restore-publish.ts",
     "build": "bun run scripts/build.ts",
-    "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
