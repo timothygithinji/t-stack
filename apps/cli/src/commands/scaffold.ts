@@ -15,6 +15,7 @@ import type {
   OrgProfile,
 } from "../core/preset.ts";
 import type { State } from "../core/state.ts";
+import { effectiveDatabase } from "@t-stack/schema";
 import { renderTemplate } from "@t-stack/templating";
 import { resolveZoneForDomain } from "../core/zones.js";
 import { buildPaths, findCliRoot } from "./_ctx.js";
@@ -41,19 +42,20 @@ function deriveVars(
       `No Cloudflare zone registered for the apex of "${d.domain}" under org "${d.org}".\nAvailable apexes: ${apexes.length > 0 ? apexes.join(", ") : "(none)"}\nRegister via:\n  t-stack org zone add ${d.org} <apex> <zoneId>\nOr auto-discover (requires CF token with Zone:Read):\n  t-stack org zone discover ${d.org} <apex>`
     );
   }
+  const database = effectiveDatabase(d);
   return {
     org: orgProfile,
     orgName: d.org,
     projectName: d.projectName,
     archetype: d.archetype,
     domain: d.domain,
-    database: d.database,
+    database,
     envs: d.envs,
     trigger: d.trigger,
     access: d.access,
     hookdeck: d.hookdeck,
-    neon: d.database === "neon",
-    turso: d.database === "turso",
+    neon: database === "neon",
+    turso: database === "turso",
     cloudflareZoneId: resolved.zoneId,
     cloudflareZoneApex: resolved.apex,
     createdAt: new Date().toISOString(),
@@ -184,18 +186,25 @@ export const scaffoldCommand = defineCommand({
         ? join(parentCwd, projectName)
         : resolve(parentCwd, projectName);
 
-      const decisions: InitDecisions = {
+      const archetype = ((args.archetype as string) ??
+        "solo-cf-worker") as Archetype;
+      const common = {
         org: (args.org as string) ?? "default",
         projectName,
-        archetype: ((args.archetype as string) ??
-          "solo-cf-worker") as Archetype,
         domain: (args.domain as string) ?? `${projectName}.example.com`,
-        database: ((args.db as string) ?? "neon") as Database,
         envs: ((args.envs as string) ?? "prd") as EnvScope,
         trigger: Boolean(args.trigger),
         access: Boolean(args.access),
         hookdeck: Boolean(args.hookdeck),
       };
+      const decisions: InitDecisions =
+        archetype === "solo-cf-worker"
+          ? {
+              archetype,
+              ...common,
+              database: ((args.db as string) ?? "neon") as Database,
+            }
+          : { archetype, ...common };
 
       const res = await runScaffold({
         cwd,

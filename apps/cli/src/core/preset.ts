@@ -1,10 +1,14 @@
+import type { Archetype, InitDecisions } from "@t-stack/schema";
 import type { Logger } from "./log.ts";
 import type { StateStore } from "./state.ts";
 import type { TokenBag } from "./tokens.ts";
 
-export type Archetype = "solo-cf-worker" | "monorepo-cf";
-export type EnvScope = "prd" | "dev+prd" | "dev+stg+prd";
-export type Database = "neon" | "turso";
+export type {
+  Archetype,
+  Database,
+  EnvScope,
+  InitDecisions,
+} from "@t-stack/schema";
 
 export interface OrgProfile {
   name: string;
@@ -21,24 +25,6 @@ export interface OrgProfile {
   neonOrgId?: string;
   /** Trigger.dev org slug to scope projects under (e.g. "personal-108a"). Required only when trigger=true. */
   triggerOrgSlug?: string;
-}
-
-export interface InitDecisions {
-  org: string;
-  projectName: string;
-  archetype: Archetype;
-  domain: string;
-  database: Database;
-  envs: EnvScope;
-  trigger: boolean;
-  access: boolean;
-  hookdeck: boolean;
-  /**
-   * Project-scoped Hookdeck API key collected during `t-stack init`. Only
-   * read during the init flow itself — subsequent runs fetch the key from
-   * per-project Doppler (`buildCtx`). Not persisted to `t-stack.config.ts`.
-   */
-  hookdeckApiKey?: string;
 }
 
 export interface Paths {
@@ -67,21 +53,10 @@ export interface Ctx {
   nonInteractive: boolean;
 }
 
-export type PromptType = "select" | "confirm" | "text";
-
-export interface PromptDef {
-  id: string;
-  type: PromptType;
-  message?: string;
-  choices?: readonly string[];
-  default?: string | boolean;
-}
-
 export interface PresetDef {
   id: string;
   description: string;
   templates: readonly string[];
-  prompts: readonly PromptDef[];
   run: (ctx: Ctx) => Promise<void>;
 }
 
