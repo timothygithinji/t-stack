@@ -5,6 +5,7 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "../styles.css";
 
 export const Route = createRootRoute({
@@ -20,13 +21,18 @@ export const Route = createRootRoute({
       },
     ],
     links: [{ rel: "icon", href: "/favicon.ico" }],
+    scripts: [
+      // Synchronous pre-hydration script: sets `.dark` class on <html>
+      // before React mounts so users in dark mode don't see a light flash.
+      { children: THEME_INIT_SCRIPT },
+    ],
   }),
   component: RootDocument,
 });
 
 function RootDocument(): ReactNode {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
