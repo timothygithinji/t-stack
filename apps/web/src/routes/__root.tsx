@@ -4,9 +4,19 @@ import {
   Scripts,
   createRootRoute,
 } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "../styles.css";
+
+// React Grab: dev-only UI element grabber for AI coding agents.
+// The conditional import keeps it out of the production bundle entirely.
+function useReactGrab() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -31,6 +41,7 @@ export const Route = createRootRoute({
 });
 
 function RootDocument(): ReactNode {
+  useReactGrab();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
