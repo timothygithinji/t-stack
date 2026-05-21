@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
 import { execa } from "execa";
 import { ofetch } from "ofetch";
@@ -333,6 +334,30 @@ export async function seedOrchestratorSecrets(ctx: Ctx): Promise<void> {
   const entries: Array<{ key: string; value: string }> = [];
   if (ctx.decisions.hookdeck && ctx.tokens.hookdeckApiKey) {
     entries.push({ key: "HOOKDECK_API_KEY", value: ctx.tokens.hookdeckApiKey });
+  }
+  if (ctx.decisions.auth === "better-auth") {
+    // Better Auth signs sessions with this — must be stable across deploys
+    // so existing sessions survive. Reuse whatever's already in prd; only
+    // mint a new value on first provision.
+    let existing: Record<string, string> = {};
+    try {
+      existing = await exportEnv(ctx, "prd");
+    } catch (err) {
+      ctx.logger.debug(
+        `doppler.seedOrchestratorSecrets: exportEnv probe failed (${(err as Error).message}); will mint a fresh BETTER_AUTH_SECRET`
+      );
+    }
+    const current = existing.BETTER_AUTH_SECRET;
+    if (current && current.length > 0) {
+      ctx.logger.debug(
+        "doppler.seedOrchestratorSecrets: reusing existing BETTER_AUTH_SECRET"
+      );
+    } else {
+      entries.push({
+        key: "BETTER_AUTH_SECRET",
+        value: randomBytes(32).toString("hex"),
+      });
+    }
   }
   if (entries.length === 0) {
     return;

@@ -99,9 +99,11 @@ export default definePreset({
         // Step id kept for state.json compatibility with existing projects.
         // The function used to seed db + trigger secrets here too, but those
         // now flow directly from their owning plugins (neon/turso/trigger).
-        // This step is now only meaningful when hookdeck is enabled.
+        // This step handles orchestrator-owned secrets — hookdeck's API key
+        // (user-supplied) and Better Auth's session-signing secret (minted
+        // once and reused on subsequent runs).
         id: "doppler.seedSecrets",
-        activate: (d) => d.hookdeck === true,
+        activate: (d) => d.hookdeck === true || d.auth === "better-auth",
         async run(c) {
           await doppler.seedOrchestratorSecrets(c);
           return {};

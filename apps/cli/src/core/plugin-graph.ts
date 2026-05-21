@@ -142,8 +142,43 @@ async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateResult> {
     return { proceed: true, recreated: true };
   }
 
-  const choice = await p.select<"adopt" | "new" | "remove" | "keep">({
-    message: `Step "${step.id}" tracks a resource that no longer exists.`,
+  // If the user already picked "apply to all" on a prior prompt this run,
+  // honor that decision and skip re-asking.
+  const sticky = ctx.verifyChoiceForAll;
+  const choice = sticky ?? (await promptStaleStateChoice(ctx, step.id));
+
+  if (choice === "keep") {
+    return { proceed: true, recreated: false };
+  }
+  if (choice === "remove") {
+    await ctx.state.remove(step.id);
+    ctx.logger.info(`removed: ${step.id} (state cleared)`);
+    return { proceed: false };
+  }
+  await ctx.state.remove(step.id);
+  ctx.recreateMode = choice;
+  return { proceed: true, recreated: true };
+}
+
+/**
+ * Render the verify-on-skip prompt and persist the user's choice on `ctx`
+ * if they pick "apply to all". Split out so {@link gateOnVerify} stays
+ * focused on the decision flow.
+ */
+async function promptStaleStateChoice(
+  ctx: Ctx,
+  stepId: string
+): Promise<"adopt" | "new" | "remove" | "keep"> {
+  const choice = await p.select<
+    | "adopt"
+    | "new"
+    | "remove"
+    | "keep"
+    | "adopt-all"
+    | "remove-all"
+    | "keep-all"
+  >({
+    message: `Step "${stepId}" tracks a resource that no longer exists.`,
     options: [
       {
         value: "adopt",
@@ -159,24 +194,39 @@ async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateResult> {
           "Remove from state (state.json only — scaffolded code is left as-is)",
       },
       { value: "keep", label: "Keep stale state (resource stays broken)" },
+      {
+        value: "adopt-all",
+        label:
+          "Recreate (adopt) and apply to every remaining stale step this run",
+      },
+      {
+        value: "remove-all",
+        label:
+          "Remove from state and apply to every remaining stale step this run",
+      },
+      {
+        value: "keep-all",
+        label: "Keep all stale state this run (no more prompts)",
+      },
     ],
     initialValue: "adopt",
   });
   if (p.isCancel(choice)) {
     throw new Error("Cancelled.");
   }
-
-  if (choice === "keep") {
-    return { proceed: true, recreated: false };
+  if (choice === "adopt-all") {
+    ctx.verifyChoiceForAll = "adopt";
+    return "adopt";
   }
-  if (choice === "remove") {
-    await ctx.state.remove(step.id);
-    ctx.logger.info(`removed: ${step.id} (state cleared)`);
-    return { proceed: false };
+  if (choice === "remove-all") {
+    ctx.verifyChoiceForAll = "remove";
+    return "remove";
   }
-  await ctx.state.remove(step.id);
-  ctx.recreateMode = choice;
-  return { proceed: true, recreated: true };
+  if (choice === "keep-all") {
+    ctx.verifyChoiceForAll = "keep";
+    return "keep";
+  }
+  return choice;
 }
 
 /**

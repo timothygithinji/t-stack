@@ -59,6 +59,14 @@ export interface Ctx {
    * a per-step input and not assume it sticks across step boundaries.
    */
   recreateMode?: "adopt" | "new";
+  /**
+   * Session-wide default for the verify-on-skip prompt. When the user picks
+   * "apply to all" on the first stale-resource prompt, the runner stores
+   * their choice here so subsequent gates skip the prompt and act on it.
+   *
+   * Mutated by `gateOnVerify` itself; presets don't need to set this.
+   */
+  verifyChoiceForAll?: "adopt" | "new" | "remove" | "keep";
 }
 
 export interface PresetDef {

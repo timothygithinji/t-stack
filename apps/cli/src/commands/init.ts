@@ -252,11 +252,37 @@ export async function runInit(
     }
   }
 
-  // 5. Final banner.
-  p.log.info(
-    `Resume any failed step:  t-stack provision --cwd ${projectDir}\n` +
-      `Audit cloud state:       t-stack doctor --cwd ${projectDir}`
-  );
+  // 5. Final banner — features-aware next-step hints so users aren't left
+  // wondering "what now?". Operational commands first, then per-feature
+  // breadcrumbs only when the feature is enabled.
+  const hints: string[] = [
+    `cd ${projectDir}`,
+    "bun run dev                          # local dev server",
+    `t-stack provision --cwd ${projectDir}    # resume any failed step`,
+    `t-stack doctor --cwd ${projectDir}       # audit cloud state`,
+  ];
+  if (decisions.databaseHost !== "none" && decisions.orm === "drizzle") {
+    hints.push(
+      "bun run db:push                      # apply schema to the database"
+    );
+  }
+  if (decisions.auth === "better-auth") {
+    hints.push(
+      "# Better Auth is wired into src/lib/auth.ts and /api/auth/* in src/server.ts."
+    );
+    hints.push(
+      "# Tables ship pre-defined in db/schema.ts — run `db:push` after init."
+    );
+  }
+  if (decisions.trigger) {
+    hints.push(
+      "bun run trigger:dev                  # local Trigger.dev dev loop"
+    );
+    hints.push(
+      "# Add tasks under src/trigger/ — see src/trigger/hello-world.ts."
+    );
+  }
+  p.log.info(hints.join("\n"));
   p.outro(`Ready · https://${decisions.domain}`);
 }
 
