@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Github } from "lucide-react";
 import { StackBuilder } from "@/components/stack-builder/stack-builder";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -19,12 +20,14 @@ function StackBuilderPage() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <a
-            className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide hover:text-foreground"
+            aria-label="GitHub repository"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             href="https://github.com/timothygithinji/t-stack"
             rel="noreferrer"
             target="_blank"
+            title="GitHub"
           >
-            GitHub
+            <Github aria-hidden className="size-4" />
           </a>
         </div>
       </header>

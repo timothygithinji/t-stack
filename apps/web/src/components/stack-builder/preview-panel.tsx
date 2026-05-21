@@ -53,18 +53,24 @@ export function PreviewPanel({ stack }: PreviewPanelProps) {
   }
 
   return (
-    <div className="grid h-full grid-cols-[14rem_minmax(0,1fr)] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-card)]">
-      <aside className="min-h-0 overflow-y-auto border-[var(--color-border)] border-r py-2">
-        <p className="px-3 pb-1 font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
-          {files.length} files
-        </p>
-        <FileTree
-          files={files}
-          onSelect={setSelectedPath}
-          selectedPath={selectedPath}
-        />
+    <div className="grid h-full grid-cols-[14rem_minmax(0,1fr)] grid-rows-[100%] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-card)]">
+      <aside className="flex min-h-0 flex-col overflow-y-auto border-[var(--color-border)] border-r">
+        <div className="sticky top-0 z-10 flex items-center border-[var(--color-border)] border-b bg-[var(--color-card)] px-3 py-2">
+          <p className="font-mono text-[11px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+            {files.length} files
+          </p>
+        </div>
+        <div className="py-2">
+          <FileTree
+            files={files}
+            onSelect={setSelectedPath}
+            selectedPath={selectedPath}
+          />
+        </div>
       </aside>
-      <CodeViewer file={selectedFile} />
+      <div className="min-h-0 min-w-0 overflow-hidden">
+        <CodeViewer file={selectedFile} />
+      </div>
     </div>
   );
 }
