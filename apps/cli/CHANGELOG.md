@@ -2,6 +2,12 @@
 
 
 
+## [0.3.5](https://github.com/timothygithinji/t-stack/compare/v0.3.4...v0.3.5) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** use object-map shape for Trigger.dev envvar import ([3200fe9](https://github.com/timothygithinji/t-stack/commit/3200fe9960b1e50558beea45f33cd54b9eca7ee6))
+
 ## [0.3.4](https://github.com/timothygithinji/t-stack/compare/v0.3.3...v0.3.4) (2026-05-21)
 
 ### Bug Fixes
