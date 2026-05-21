@@ -2,6 +2,12 @@
 
 
 
+## [0.3.3](https://github.com/timothygithinji/t-stack/compare/v0.3.2...v0.3.3) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** bundle built-in presets into cli.js instead of shipping raw .ts ([50c8e2b](https://github.com/timothygithinji/t-stack/commit/50c8e2be4d2fea7934228cb17066a401db1b9969))
+
 ## [0.3.2](https://github.com/timothygithinji/t-stack/compare/v0.3.1...v0.3.2) (2026-05-21)
 
 ### Bug Fixes
