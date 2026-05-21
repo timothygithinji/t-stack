@@ -8,6 +8,10 @@ dist
 # synced template files (canonical source: packages/templates/files)
 apps/cli/templates
 
+# pack backup (prepack writes a clean package.json; postpack restores)
+apps/cli/package.json.publish-bak
+apps/cli/*.tgz
+
 # tooling caches
 .vitest-cache
 coverage
