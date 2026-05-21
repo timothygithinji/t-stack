@@ -120,13 +120,6 @@ From here on, all you need for a new project is step 7. Steps 2–6 are one-time
 
 Every command accepts `--help` for full flag listings.
 
-## Archetypes
-
-- **`solo-cf-worker`** — Vite + TanStack Start on Cloudflare Workers, single `package.json`, Drizzle + Neon (or Turso) optional.
-- **`monorepo-cf`** — Bun workspaces: `apps/web` (Vite + TanStack Start) + `apps/server` (Hono on CF Workers) + `packages/{db,ui,types,tsconfig}`, optional `apps/trigger`.
-
-Both archetypes ship a `_base` overlay with Biome + Ultracite, Husky, release-it, and reusable GHA `setup` / `fetch-secrets` actions wired for Doppler OIDC.
-
 ## When something breaks
 
 - **A provision step fails partway through?** Re-run `t-stack provision --cwd ./my-app`. Each step records its outcome to `.t-stack/state.json`; completed steps are skipped on the next run.
