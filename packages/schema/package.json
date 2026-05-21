@@ -9,9 +9,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "echo 'no build (source-only package)'",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "build": "echo 'no build (source-only package)'"
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "4.4.3"

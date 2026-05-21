@@ -10,8 +10,8 @@
     "./in-memory": "./src/in-memory.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "echo 'no build (source-only package)'"
+    "build": "echo 'no build (source-only package)'",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "handlebars": "4.7.9",
