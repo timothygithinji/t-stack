@@ -12,7 +12,9 @@
       "!**/templates/**",
       "!packages/templates/**",
       "!**/*.md",
-      "!**/test/fixtures/**"
+      "!**/test/fixtures/**",
+      "!**/routeTree.gen.ts",
+      "!**/.wrangler/**"
     ]
   },
   "javascript": {
