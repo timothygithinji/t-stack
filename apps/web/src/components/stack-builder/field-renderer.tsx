@@ -22,7 +22,7 @@ export function FieldRenderer({
   projectNameError,
 }: FieldRendererProps) {
   return (
-    <div className="space-y-7">
+    <div>
       {CATEGORIES.map((category) => {
         if (!shouldShow(category, stack)) {
           return null;
@@ -65,26 +65,28 @@ function CategorySection({
 }: CategorySectionProps) {
   return (
     <section>
-      <header className="mb-3 flex items-center gap-2 border-[var(--color-border)] border-b pb-2 text-[var(--color-muted-foreground)]">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-[var(--color-border)] border-b px-5">
         <Terminal
           aria-hidden
           className="size-3.5 text-[var(--color-primary)]"
         />
-        <h2 className="font-mono font-semibold text-[var(--color-foreground)] text-xs uppercase tracking-wide">
+        <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
           {category.title}
         </h2>
       </header>
 
       {category.variant === "input" ? (
-        <ProjectInputs
-          projectNameError={projectNameError}
-          setStack={setStack}
-          stack={stack}
-        />
+        <div className="px-5 py-4">
+          <ProjectInputs
+            projectNameError={projectNameError}
+            setStack={setStack}
+            stack={stack}
+          />
+        </div>
       ) : null}
 
       {category.variant === "single" && category.options ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-2">
           {category.options.map((opt) => (
             <OptionCard
               description={opt.description}
@@ -114,7 +116,7 @@ function CategorySection({
       ) : null}
 
       {category.variant === "toggle-group" && category.toggles ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-2">
           {category.toggles.map((tog) => {
             const value = Boolean(
               (stack as unknown as Record<string, unknown>)[tog.field]
