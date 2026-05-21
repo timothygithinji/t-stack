@@ -53,7 +53,22 @@ function toRefs(value: unknown): Record<string, unknown> {
   return { value };
 }
 
-type GateVerdict = "continue" | "skip-removed";
+/**
+ * Result of the verify-on-skip gate.
+ *
+ *   - `proceed: false` — the gate explicitly removed the step's state (user
+ *     picked "Remove from state"); skip the step body entirely, no cascade.
+ *   - `proceed: true, recreated: true` — the gate cleared state because the
+ *     resource was missing and we want a real recreate. The step body will
+ *     run fresh and downstream consumers MUST be invalidated (so the new
+ *     refs flow through the chain).
+ *   - `proceed: true, recreated: false` — gate took no destructive action.
+ *     The step body may still run (e.g. because refs were redacted and the
+ *     step runner is refreshing sensitive values into memory), but that's a
+ *     cosmetic re-run that didn't change the underlying resource — downstream
+ *     should NOT cascade.
+ */
+type GateResult = { proceed: false } | { proceed: true; recreated: boolean };
 
 async function invalidateDependents(
   ctx: Ctx,
@@ -82,23 +97,25 @@ async function invalidateDependents(
  *   - "adopt"   → drop state entry + set ctx.recreateMode="adopt"; runner runs
  *   - "new"     → drop state entry + set ctx.recreateMode="new";   runner runs
  *
- * Returns "skip-removed" only for the explicit-remove path so the caller can
- * `continue` past the step body entirely; otherwise "continue" lets the
- * normal step-runner path take over.
+ * The returned `recreated` flag tells the caller whether to cascade
+ * invalidation: only `true` when the gate actively cleared completed state
+ * (verify failed → user/auto-recreate). A redacted-refs re-run is NOT a
+ * recreate — the resource is fine, we're just refreshing sensitive values.
  */
-async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateVerdict> {
+async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateResult> {
   if (!step.verify) {
-    return "continue";
+    return { proceed: true, recreated: false };
   }
   await ctx.state.read();
   const existing = ctx.state.get(step.id);
   if (existing?.status !== "completed") {
-    return "continue";
+    return { proceed: true, recreated: false };
   }
   if (hasRedactedValues(existing.refs ?? {})) {
     // Redacted refs already force a re-run via the step runner, and re-running
     // self-heals via the plugin's lookup-first path. Verify would be redundant.
-    return "continue";
+    // This is a cosmetic re-run, NOT a recreate — leave downstream alone.
+    return { proceed: true, recreated: false };
   }
 
   let alive = true;
@@ -111,10 +128,10 @@ async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateVerdict> {
     ctx.logger.debug(
       `verify(${step.id}) threw: ${(err as Error).message} — trusting state.`
     );
-    return "continue";
+    return { proceed: true, recreated: false };
   }
   if (alive) {
-    return "continue";
+    return { proceed: true, recreated: false };
   }
 
   if (ctx.nonInteractive) {
@@ -122,7 +139,7 @@ async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateVerdict> {
       `verify: ${step.id} reports resource missing — recreating (adopt-first, --yes default).`
     );
     await ctx.state.remove(step.id);
-    return "continue";
+    return { proceed: true, recreated: true };
   }
 
   const choice = await p.select<"adopt" | "new" | "remove" | "keep">({
@@ -150,16 +167,16 @@ async function gateOnVerify(ctx: Ctx, step: PluginStep): Promise<GateVerdict> {
   }
 
   if (choice === "keep") {
-    return "continue";
+    return { proceed: true, recreated: false };
   }
   if (choice === "remove") {
     await ctx.state.remove(step.id);
     ctx.logger.info(`removed: ${step.id} (state cleared)`);
-    return "skip-removed";
+    return { proceed: false };
   }
   await ctx.state.remove(step.id);
   ctx.recreateMode = choice;
-  return "continue";
+  return { proceed: true, recreated: true };
 }
 
 /**
@@ -185,7 +202,7 @@ export async function runPluginGraph(
       continue;
     }
     const gate = await gateOnVerify(ctx, s);
-    if (gate === "skip-removed") {
+    if (!gate.proceed) {
       continue;
     }
     let ran = false;
@@ -206,7 +223,9 @@ export async function runPluginGraph(
     } finally {
       ctx.recreateMode = undefined;
     }
-    if (ran) {
+    // Only cascade when the gate signaled a real recreate. A redacted-refs
+    // re-run (cosmetic) didn't change the resource, so downstream stays cached.
+    if (ran && gate.recreated) {
       await invalidateDependents(ctx, s.invalidates);
     }
   }
@@ -235,10 +254,15 @@ export async function runParallel(
   // Run verify-gates sequentially before kicking off the parallel batch, so
   // prompts (if any) interleave cleanly and don't race for the terminal.
   const toRun: PluginStep[] = [];
+  const recreatedIds = new Set<string>();
   for (const s of activated) {
     const gate = await gateOnVerify(ctx, s);
-    if (gate !== "skip-removed") {
-      toRun.push(s);
+    if (!gate.proceed) {
+      continue;
+    }
+    toRun.push(s);
+    if (gate.recreated) {
+      recreatedIds.add(s.id);
     }
   }
 
@@ -266,10 +290,12 @@ export async function runParallel(
   ctx.recreateMode = undefined;
   const deps: StepDeps = {};
   // Invalidate downstream serially AFTER the batch so we don't race against
-  // siblings that might be writing the same state file.
+  // siblings that might be writing the same state file. Only cascade when the
+  // gate signaled a recreate — cosmetic redacted-refs re-runs leave dependents
+  // cached.
   for (const [id, value, ran] of results) {
     deps[id] = value;
-    if (ran) {
+    if (ran && recreatedIds.has(id)) {
       const s = toRun.find((x) => x.id === id);
       await invalidateDependents(ctx, s?.invalidates);
     }

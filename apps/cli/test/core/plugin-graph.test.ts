@@ -218,6 +218,52 @@ describe("runPluginGraph", () => {
     expect(downstreamRan).toHaveBeenCalledTimes(1);
   });
 
+  it("does NOT cascade when an upstream step re-runs purely to refresh redacted refs", async () => {
+    const ctx = await makeTestCtx();
+    const downstreamRan = vi.fn(async () => ({}));
+    const verifyFn = vi.fn(async () => true);
+
+    const steps: PluginStep[] = [
+      {
+        id: "neon.create",
+        activate: () => true,
+        async run() {
+          // Plugin re-runs because its stored refs are redacted (step runner
+          // path). It returns the same resource it already had — no
+          // downstream consumer should notice.
+          return { connectionString: "postgres://x" };
+        },
+        verify: verifyFn,
+        invalidates: ["doppler.seedSecrets"],
+      },
+      {
+        id: "doppler.seedSecrets",
+        activate: () => true,
+        run: downstreamRan,
+      },
+    ];
+
+    // neon.create state has redacted refs → forces re-run via step runner.
+    // Verify will not even be consulted (gate short-circuits on redacted).
+    await ctx.state.set("neon.create", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { connectionString: "<redacted>" },
+    });
+    await ctx.state.set("doppler.seedSecrets", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: {},
+    });
+
+    await runPluginGraph(ctx, steps);
+
+    expect(verifyFn).not.toHaveBeenCalled();
+    // doppler.seedSecrets should stay skipped — redacted-refs re-run isn't a
+    // real recreate, so no cascade fires.
+    expect(downstreamRan).not.toHaveBeenCalled();
+  });
+
   it("does NOT invalidate dependents when an upstream step is skipped", async () => {
     const ctx = await makeTestCtx();
     const downstreamRan = vi.fn(async () => ({}));
