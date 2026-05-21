@@ -2,6 +2,7 @@ import { initSchema } from "@t-stack/schema";
 import { useMemo } from "react";
 import { asInitDecisions } from "@/lib/stack-builder/types";
 import { useStackBuilder } from "@/lib/stack-builder/use-stack-builder";
+import { ActionsSection } from "./actions-section";
 import { CommandOutput } from "./command-output";
 import { FieldRenderer } from "./field-renderer";
 import { PreviewPanel } from "./preview-panel";
@@ -41,15 +42,7 @@ export function StackBuilder() {
           setStack={setStack}
           stack={stack}
         />
-        <div className="border-[var(--color-border)] border-t px-5 py-3">
-          <button
-            className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide hover:text-[var(--color-foreground)]"
-            onClick={resetStack}
-            type="button"
-          >
-            Reset to defaults
-          </button>
-        </div>
+        <ActionsSection resetStack={resetStack} setStack={setStack} />
       </aside>
 
       <main className="flex min-h-0 flex-col overflow-hidden">
