@@ -38,7 +38,6 @@
   "scripts": {
     "copy-templates": "bun run scripts/copy-templates.ts",
     "prebuild": "bun run copy-templates",
-    "predev": "bun run copy-templates",
     "pretest": "bun run copy-templates",
     "prepack": "bun run copy-templates && bun run scripts/prepare-publish.ts",
     "postpack": "bun run scripts/restore-publish.ts",

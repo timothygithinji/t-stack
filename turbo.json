@@ -46,22 +46,6 @@
     },
     "lint": {
       "outputs": []
-    },
-    "@t-stack/templates#build": {
-      "outputs": [],
-      "inputs": ["files/**"]
-    },
-    "@t-stack/schema#build": {
-      "outputs": [],
-      "inputs": ["src/**"]
-    },
-    "@t-stack/presets#build": {
-      "outputs": [],
-      "inputs": ["src/**"]
-    },
-    "@t-stack/templating#build": {
-      "outputs": [],
-      "inputs": ["src/**"]
     }
   }
 }

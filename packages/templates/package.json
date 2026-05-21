@@ -8,8 +8,5 @@
   },
   "files": [
     "files"
-  ],
-  "scripts": {
-    "build": "echo 'no build (static files only)'"
-  }
+  ]
 }

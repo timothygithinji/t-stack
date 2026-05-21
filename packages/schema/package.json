@@ -9,7 +9,6 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "echo 'no build (source-only package)'",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
