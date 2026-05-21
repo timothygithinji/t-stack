@@ -67,6 +67,12 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      # Wrangler 4.x requires Node 22+; the runner ships with 20.
+      # bunx still picks up `node` from PATH when invoking wrangler's CLI.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
