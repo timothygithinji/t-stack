@@ -45,6 +45,7 @@
     "test:watch": "vitest",
     "smoke": "bun run scripts/smoke.ts",
     "sync-template": "bun run scripts/sync-template.ts",
+    "release": "release-it",
     "release:dry": "release-it --dry-run",
     "prepare": "husky 2>/dev/null || true"
   },
