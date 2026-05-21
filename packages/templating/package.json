@@ -10,7 +10,6 @@
     "./in-memory": "./src/in-memory.ts"
   },
   "scripts": {
-    "build": "echo 'no build (source-only package)'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
