@@ -2,6 +2,12 @@
 
 
 
+## [0.5.0](https://github.com/timothygithinji/t-stack/compare/v0.4.1...v0.5.0) (2026-05-21)
+
+### Features
+
+* **cli:** switch GitHub Actions Doppler auth from OIDC to service token ([a8a5fcb](https://github.com/timothygithinji/t-stack/commit/a8a5fcbf0f0c1a8e2f1e7472b2f155d2c01bc7a5))
+
 ## [0.4.1](https://github.com/timothygithinji/t-stack/compare/v0.4.0...v0.4.1) (2026-05-21)
 
 ### Bug Fixes
