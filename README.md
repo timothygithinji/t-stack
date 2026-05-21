@@ -17,10 +17,6 @@ bunx @timothygithinji/t-stack@latest init my-app
 - **Deploys** the Worker via `wrangler` (custom domain wired automatically), then pushes the initial commit
 - **Idempotent + resumable**: every step writes to a committed `.t-stack/state.json`, so re-running picks up where it left off
 
-## Status
-
-**v0.1** — single-org workflows on `solo-cf-worker` and `monorepo-cf` are proven via an automated end-to-end smoke test (create → HTTP 200 → destroy). Existing-repo adoption, multi-region preview envs, and Upstash Redis are deferred to v0.2.
-
 ## Running t-stack
 
 You don't need to install anything — invoke via `bunx` (or `npx`) so you always get the latest published version:
