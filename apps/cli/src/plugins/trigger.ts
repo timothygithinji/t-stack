@@ -143,42 +143,22 @@ export async function syncEnvVars(
   refs: TriggerRefs,
   secrets: Record<string, string>
 ): Promise<void> {
-  const entries = Object.entries(secrets);
-  if (entries.length === 0) {
+  if (Object.keys(secrets).length === 0) {
     return;
   }
   ctx.logger.debug(
-    `trigger.syncEnvVars projectRef=${refs.projectRef} keys=${entries.map(([k]) => k).join(",")}`
+    `trigger.syncEnvVars projectRef=${refs.projectRef} keys=${Object.keys(secrets).join(",")}`
   );
 
-  try {
-    await ofetch(
-      `${TRIGGER_API_BASE}/projects/${refs.projectRef}/envvars/prod/import`,
-      {
-        method: "POST",
-        headers: authHeaders(ctx.tokens.triggerAccessToken),
-        body: {
-          variables: entries.map(([name, value]) => ({ name, value })),
-          override: true,
-        },
-      }
-    );
-    return;
-  } catch (err) {
-    const status = (err as { response?: { status?: number } }).response?.status;
-    if (status !== 404 && status !== 405) {
-      throw err;
+  await ofetch(
+    `${TRIGGER_API_BASE}/projects/${refs.projectRef}/envvars/prod/import`,
+    {
+      method: "POST",
+      headers: authHeaders(ctx.tokens.triggerAccessToken),
+      body: {
+        variables: secrets,
+        override: true,
+      },
     }
-  }
-
-  for (const [name, value] of entries) {
-    await ofetch(
-      `${TRIGGER_API_BASE}/projects/${refs.projectRef}/envvars/prod/${encodeURIComponent(name)}`,
-      {
-        method: "PUT",
-        headers: authHeaders(ctx.tokens.triggerAccessToken),
-        body: { value },
-      }
-    );
-  }
+  );
 }

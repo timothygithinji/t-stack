@@ -5,6 +5,7 @@ import {
   createProject,
   listOrgs,
   listProjects,
+  syncEnvVars,
 } from "../../src/plugins/trigger.js";
 import { makeTestCtx } from "../_helpers.js";
 
@@ -12,6 +13,8 @@ const PROJECTS_URL = "https://api.trigger.dev/api/v1/projects";
 const ORGS_URL = "https://api.trigger.dev/api/v1/orgs";
 const CREATE_URL = "https://api.trigger.dev/api/v1/orgs/:slug/projects";
 const PROD_KEY_URL = "https://api.trigger.dev/api/v1/projects/:ref/prod";
+const ENVVAR_IMPORT_URL =
+  "https://api.trigger.dev/api/v1/projects/:ref/envvars/prod/import";
 
 const PROJECT_LIST_TWO_ORGS = [
   {
@@ -251,6 +254,61 @@ describe("trigger plugin (org-scoped)", () => {
       org: { triggerOrgSlug: undefined },
     });
     await expect(createProject(ctx)).rejects.toThrow(/no triggerOrgSlug/);
+  });
+
+  it("syncEnvVars POSTs variables as an object map (not array) with override:true", async () => {
+    let capturedBody: unknown;
+    let capturedUrl = "";
+    server.use(
+      http.post(ENVVAR_IMPORT_URL, async ({ request }) => {
+        capturedUrl = request.url;
+        capturedBody = await request.json();
+        return HttpResponse.json({ success: true });
+      })
+    );
+
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      org: { triggerOrgSlug: "personal-108a" },
+    });
+    await syncEnvVars(
+      ctx,
+      {
+        projectRef: "proj_xyz",
+        slug: "demo-aBcD",
+        secretKey: "tr_prod_secret_xxx",
+      },
+      { FOO: "1", BAR: "two" }
+    );
+
+    expect(capturedUrl).toBe(
+      "https://api.trigger.dev/api/v1/projects/proj_xyz/envvars/prod/import"
+    );
+    expect(capturedBody).toEqual({
+      variables: { FOO: "1", BAR: "two" },
+      override: true,
+    });
+  });
+
+  it("syncEnvVars is a no-op when no secrets are provided", async () => {
+    let called = false;
+    server.use(
+      http.post(ENVVAR_IMPORT_URL, () => {
+        called = true;
+        return HttpResponse.json({ success: true });
+      })
+    );
+
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      org: { triggerOrgSlug: "personal-108a" },
+    });
+    await syncEnvVars(
+      ctx,
+      { projectRef: "proj_xyz", slug: "demo-aBcD", secretKey: "tr_prod_xxx" },
+      {}
+    );
+    expect(called).toBe(false);
   });
 
   it("createProject surfaces a clear error when the prod env has no apiKey", async () => {
