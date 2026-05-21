@@ -4,6 +4,11 @@
 
 `create-better-t-stack` writes files. `t-stack` writes files **and** provisions Cloudflare bindings, Neon branches, Doppler projects, GitHub repos with OIDC, Pulumi stacks, and points a custom domain — then deploys the Worker and pushes the first commit.
 
+```bash
+bunx @timothygithinji/t-stack@latest init my-app
+# → https://my-app.example.com returning 200 in one command
+```
+
 ## What it does
 
 - **Scaffolds** a typed `t-stack.config.ts` + a full repo (Vite + TanStack Start, or Bun-workspace monorepo) from vendored templates
@@ -16,28 +21,68 @@
 
 **v0.1** — single-org workflows on `solo-cf-worker` and `monorepo-cf` are proven via an automated end-to-end smoke test (create → HTTP 200 → destroy). Existing-repo adoption, multi-region preview envs, and Upstash Redis are deferred to v0.2.
 
+## Running t-stack
+
+You don't need to install anything — invoke via `bunx` (or `npx`) so you always get the latest published version:
+
+```bash
+bunx @timothygithinji/t-stack@latest <command>
+# or
+npx  @timothygithinji/t-stack@latest <command>
+```
+
+If you'll be running it more than a couple of times, drop this alias in your shell rc so the examples below stay short:
+
+```bash
+alias t-stack="bunx @timothygithinji/t-stack@latest"
+```
+
+(All examples in this README assume that alias. Without it, just prefix every command with `bunx @timothygithinji/t-stack@latest`.)
+
+## Before you start
+
+You need accounts for the cloud services t-stack drives, plus a handful of CLIs on your PATH. t-stack itself talks to remote APIs for everything else.
+
+**Accounts**
+
+- [Cloudflare](https://dash.cloudflare.com/) (account + at least one zone you control)
+- [Doppler](https://dashboard.doppler.com/) (free tier is fine)
+- [GitHub](https://github.com/) (user or org for the new repo)
+- [Neon](https://console.neon.tech/) — only if you'll use Postgres
+- [Pulumi Cloud](https://app.pulumi.com/) (free for individuals)
+- [Trigger.dev](https://cloud.trigger.dev/) — optional
+- [Hookdeck](https://dashboard.hookdeck.com/) — optional (per-project API key)
+
+**CLIs** (`t-stack doctor` will tell you which are missing)
+
+| CLI | Install | Why |
+| --- | --- | --- |
+| `doppler` | [docs](https://docs.doppler.com/docs/install-cli) | secrets backend |
+| `gh` | `brew install gh` | repo creation, OIDC setup |
+| `pulumi` | [docs](https://www.pulumi.com/docs/iac/download-install/) | IaC for CF/Neon/Trigger |
+| `neonctl` | `npm i -g neonctl` | only if `--db neon` |
+| `turso` | [docs](https://docs.turso.tech/cli/installation) | only if `--db turso` |
+| `wrangler` | comes via `bunx wrangler` | Worker deploy |
+
+Then authenticate each one (`gh auth login`, `pulumi login`, `neonctl auth`, etc.). `t-stack doctor` audits all of this in one shot.
+
 ## Quick start
 
 ```bash
-# 1. Sanity-check the environment
-bunx @timothygithinji/t-stack@latest doctor
+# 1. Health-check your environment (works before any setup — tells you what's missing).
+t-stack doctor
 
-# 2. Install the Doppler CLI and authenticate per org
-#    https://docs.doppler.com/docs/install-cli
+# 2. Authenticate the Doppler CLI against the workplace this org should write to.
 doppler login --scope ~/.t-stack/orgs/<orgName>
 
-# 3. Make sure these CLIs are installed and authed:
-gh auth status          # GitHub CLI
-pulumi whoami           # Pulumi
-neonctl me              # Neon CLI
-
-# 4. Mint two API tokens (one-time per org):
+# 3. Mint two API tokens (one-time per org):
 #    - Cloudflare API token        → https://dash.cloudflare.com/profile/api-tokens
 #                                     (Account: Workers Scripts:Edit, R2 Edit, Account Settings Read;
 #                                      Zone: DNS Edit, Workers Routes Edit)
 #    - Trigger.dev personal token  → https://cloud.trigger.dev/account/tokens
 
-# 5. Register the org once
+# 4. Register the org once. Picks up your Cloudflare account id, default apex,
+#    Doppler workplace name, Pulumi org, Neon org id, Trigger.dev org slug.
 t-stack org add <name> \
   --cf-account <accountId> \
   --cf-zone <apex>=<zoneId> \
@@ -48,15 +93,17 @@ t-stack org add <name> \
   --neon-org-id org-xxx-xxxxxx \
   --trigger-org-slug <trigger-org-slug>
 
-# 6. Bootstrap meta tokens into Doppler's t-stack project
+# 5. Push the meta tokens into Doppler's t-stack project (one-time per org).
 t-stack login --org <name>
 
-# 7. Verify everything is wired up
+# 6. Re-run doctor — everything should be green now.
 t-stack doctor
 
-# 8. Scaffold + provision + deploy in one shot
+# 7. Scaffold + provision + deploy in one shot.
 t-stack init my-app
 ```
+
+From here on, all you need for a new project is step 7. Steps 2–6 are one-time per org.
 
 ## Commands
 
@@ -75,12 +122,20 @@ t-stack init my-app
 | `t-stack org zone add\|list\|remove\|discover` | Manage Cloudflare apex → zoneId mappings |
 | `t-stack org trigger list\|discover\|set` | Resolve and pin a Trigger.dev org slug |
 
+Every command accepts `--help` for full flag listings.
+
 ## Archetypes
 
 - **`solo-cf-worker`** — Vite + TanStack Start on Cloudflare Workers, single `package.json`, Drizzle + Neon (or Turso) optional.
 - **`monorepo-cf`** — Bun workspaces: `apps/web` (Vite + TanStack Start) + `apps/server` (Hono on CF Workers) + `packages/{db,ui,types,tsconfig}`, optional `apps/trigger`.
 
 Both archetypes ship a `_base` overlay with Biome + Ultracite, Husky, release-it, and reusable GHA `setup` / `fetch-secrets` actions wired for Doppler OIDC.
+
+## When something breaks
+
+- **A provision step fails partway through?** Re-run `t-stack provision --cwd ./my-app`. Each step records its outcome to `.t-stack/state.json`; completed steps are skipped on the next run.
+- **Cloud state and local state look out of sync?** `t-stack doctor --cwd ./my-app` cross-checks zone ids, tokens, Doppler projects, and per-step status against reality.
+- **Want to start over?** `t-stack destroy --cwd ./my-app` reverses every step in order. Re-run `init` after.
 
 ## Why
 
@@ -90,60 +145,9 @@ Every new project starts with 2–3 days of grunt work: copying configs from the
 
 [Citty](https://citty.unjs.io/) · [Clack](https://www.clack.cc/) · [Pulumi Automation API](https://www.pulumi.com/docs/iac/packages-and-automation/automation-api/) · [Bun](https://bun.com/) · [Doppler](https://www.doppler.com/) · [Cloudflare Workers](https://workers.cloudflare.com/) · [Neon](https://neon.tech/) · [GitHub](https://docs.github.com/en/rest) · [Trigger.dev](https://trigger.dev/) · [Hookdeck](https://hookdeck.com/)
 
-## Development
+## Contributing
 
-```bash
-bun install
-bun run dev -- init my-app    # iterate against src/cli.ts
-bun run test                  # vitest + MSW (88 tests)
-bun run typecheck
-bun run build                 # bundle to dist/cli.js
-```
-
-End-to-end smoke against a real org (creates → probes → destroys real cloud resources):
-
-```bash
-SMOKE_ORG=<org> SMOKE_APEX=<apex> bun run smoke
-# SMOKE_ARCHETYPE=monorepo-cf to exercise the workspace archetype
-# SMOKE_SKIP_DESTROY=1 to leave resources up for inspection
-```
-
-See [`scripts/smoke.ts`](./scripts/smoke.ts) for the full env-var contract.
-
-## Releasing
-
-Releases are driven by a manually-triggered GitHub Action — **never run from a developer's machine**. The workflow uses [release-it](https://github.com/release-it/release-it) + [Conventional Commits](https://www.conventionalcommits.org/) to bump the version, update `CHANGELOG.md`, tag, create a GitHub release, and publish to npm (with provenance).
-
-**One-time setup** — uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (no tokens, OIDC end-to-end, 2FA stays enforced for human flows):
-
-1. On [npmjs.com/package/@timothygithinji/t-stack/access](https://www.npmjs.com/package/@timothygithinji/t-stack/access), under **Trusted Publishers**, click **Add trusted publisher** → **GitHub Actions** and fill in:
-   - Organization or user: `timothygithinji`
-   - Repository: `t-stack`
-   - Workflow filename: `release.yml`
-   - Environment: (leave blank)
-2. (For the very first publish only, before the package exists on npm) publish v0.1.0 locally once: `npm publish --otp=<6-digit-code>` — then enable trusted publishing for subsequent releases.
-
-No `NPM_TOKEN`, no Doppler service token, no long-lived secrets anywhere. The release workflow's `id-token: write` permission lets the npm CLI exchange a GitHub OIDC token for a short-lived npm publish credential at runtime. Provenance is automatic — every package version is cryptographically signed and traceable back to the exact CI run.
-
-**To release:** just push conventional-commit changes to `main`. The Release workflow runs on every push and:
-
-- exits cleanly if no `feat`/`fix`/`perf` commits since the last tag (so `docs`/`chore`/`refactor` pushes are no-ops)
-- otherwise bumps the version (semver from commit types), updates `CHANGELOG.md`, tags, creates the GitHub release, and publishes to npm
-
-For an out-of-band release (e.g. CI was flaky and you want to re-run the release pipeline), trigger manually from **Actions → Release → Run workflow** — the workflow accepts an optional "reason" input that gets logged for the audit trail.
-
-**Local preview** (no side effects):
-
-```bash
-bun run release:dry        # preview the version + CHANGELOG diff release-it would produce
-```
-
-Husky enforces locally:
-- `commit-msg` → commitlint (conventional format)
-- `pre-commit` → Biome (lint) + tsc (typecheck)
-- `pre-push` → vitest
-
-CI runs the same gates on every push/PR (`.github/workflows/ci.yml`) and again before any release (`.github/workflows/release.yml`).
+Working on t-stack itself — running the source, smoke tests, or cutting a release — is covered in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
