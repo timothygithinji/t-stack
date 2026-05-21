@@ -22,9 +22,11 @@ const DEBUG = process.env.T_STACK_DEBUG === "1";
  * Spinner factory that degrades gracefully in non-TTY contexts.
  *
  * In a TTY: returns the Clack rotating-frame spinner.
- * In a pipe/log/CI: returns a plain two-line logger that writes to stderr —
- * keeping stdout clean for downstream consumers and avoiding the
- * `[999D[J◒` ANSI redraw soup that Clack emits when it can't reposition.
+ * In a pipe/log/CI: prints the stop message verbatim — callers are
+ * expected to embed their own status glyph (✓ / ✗) so we mirror clack's
+ * TTY behaviour where the caller's text follows the spinner frame. The
+ * start call is a no-op so we don't double the line count by repeating
+ * the same text.
  */
 export function createSpinner(): Spinner {
   if (process.stdout.isTTY) {
@@ -35,11 +37,11 @@ export function createSpinner(): Spinner {
     };
   }
   return {
-    start: (msg) => {
-      process.stderr.write(`▶ ${msg}\n`);
+    start: () => {
+      // no-op: stop prints the final state
     },
     stop: (msg) => {
-      process.stderr.write(`  ${msg}\n`);
+      process.stderr.write(`${msg}\n`);
     },
   };
 }
