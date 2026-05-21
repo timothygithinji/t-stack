@@ -5,6 +5,7 @@ import { asInitDecisions } from "@/lib/stack-builder/types";
 import { CommandOutput } from "./command-output";
 import { FieldRenderer } from "./field-renderer";
 import { PresetCards } from "./preset-cards";
+import { PreviewPanel } from "./preview-panel";
 import { ShareButton } from "./share-button";
 
 export function StackBuilder() {
@@ -73,22 +74,14 @@ export function StackBuilder() {
           </h2>
           <ShareButton copied={shareCopied} onCopy={copyShareUrl} />
         </div>
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
           <CommandOutput
             command={command}
             copied={copied}
             onCopy={copyCommand}
           />
-          <div className="mt-5 rounded-lg border border-[var(--color-border)] border-dashed bg-[var(--color-muted)] p-5 text-[var(--color-muted-foreground)] text-sm">
-            <p className="font-mono text-[10px] uppercase tracking-wide">
-              File preview
-            </p>
-            <p className="mt-2 text-xs">
-              Live template rendering lands in the next commit — it'll show the
-              directory tree and rendered contents for the current selections,
-              with placeholders for vars that resolve from
-              <span className="font-mono"> orgs.toml </span>at scaffold time.
-            </p>
+          <div className="min-h-0 flex-1">
+            <PreviewPanel stack={stack} />
           </div>
         </div>
       </main>
