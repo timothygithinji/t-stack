@@ -49,7 +49,7 @@ export function CodeViewer({ file }: CodeViewerProps) {
           {file.path}
         </span>
         <span className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase">
-          {file.sourcePath !== file.path ? "rendered" : "verbatim"}
+          {file.sourcePath === file.path ? "verbatim" : "rendered"}
         </span>
       </div>
       <div className="min-h-0 flex-1 overflow-auto bg-[#0d1117] pt-3">

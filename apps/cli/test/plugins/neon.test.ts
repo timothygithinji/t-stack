@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Track every execa call so we can drive the mock per-test.
-type ExecaCall = { bin: string; args: string[] };
+interface ExecaCall {
+  bin: string;
+  args: string[];
+}
 type HandlerResult =
   | { stdout?: string; stderr?: string; exitCode?: number; throws?: true }
   | undefined;
@@ -83,7 +86,7 @@ describe("neon.create", () => {
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
         }
-        return undefined;
+        return;
       },
     ]);
 
@@ -114,7 +117,7 @@ describe("neon.create", () => {
             stdout: JSON.stringify({ uri: "postgres://demo-existing" }),
           };
         }
-        return undefined;
+        return;
       },
     ]);
 
@@ -153,7 +156,7 @@ describe("neon.create", () => {
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
         }
-        return undefined;
+        return;
       },
     ]);
 

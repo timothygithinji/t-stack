@@ -438,7 +438,7 @@ export async function runDoctor(cwd: string): Promise<number> {
         }
       }
     );
-    if (!loadCheck.ok || !tokens) {
+    if (!(loadCheck.ok && tokens)) {
       checks.push(loadCheck);
       continue;
     }

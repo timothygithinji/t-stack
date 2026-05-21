@@ -65,7 +65,7 @@ export async function pulumiUp(ctx: Ctx): Promise<CloudflareOutputs> {
   // The user-facing URL is whichever is available.
   const workerUrl = asString(outputs.workerUrl) ?? asString(outputs.webUrl);
 
-  if (!kvNamespaceId || !kvNamespaceTitle || !r2BucketName || !workerUrl) {
+  if (!(kvNamespaceId && kvNamespaceTitle && r2BucketName && workerUrl)) {
     throw new Error(
       `Cloudflare Pulumi stack missing required outputs. Got keys: ${Object.keys(outputs).join(", ")}`
     );

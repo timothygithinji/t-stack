@@ -50,11 +50,16 @@ async function findExistingProject(
   } catch {
     throw new Error("Failed to parse `neonctl projects list` JSON output");
   }
-  const list: NeonProjectListItem[] = Array.isArray(parsed)
-    ? (parsed as NeonProjectListItem[])
-    : Array.isArray((parsed as { projects?: NeonProjectListItem[] }).projects)
-      ? (parsed as { projects: NeonProjectListItem[] }).projects
-      : [];
+  let list: NeonProjectListItem[];
+  if (Array.isArray(parsed)) {
+    list = parsed as NeonProjectListItem[];
+  } else if (
+    Array.isArray((parsed as { projects?: NeonProjectListItem[] }).projects)
+  ) {
+    list = (parsed as { projects: NeonProjectListItem[] }).projects;
+  } else {
+    list = [];
+  }
   return list.find((p) => p.name === name);
 }
 

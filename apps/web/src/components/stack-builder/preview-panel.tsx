@@ -75,13 +75,16 @@ export function PreviewPanel({ stack }: PreviewPanelProps) {
   );
 }
 
+const README_RE = /^[a-z-/]*README\.md$/i;
+const CONFIG_RE = /t-stack\.config/;
+
 function pickInitialFile(files: RenderedFile[]): string | null {
   // Prefer README, then t-stack.config, then anything else.
-  const readme = files.find((f) => /^[a-z-/]*README\.md$/i.test(f.path));
+  const readme = files.find((f) => README_RE.test(f.path));
   if (readme) {
     return readme.path;
   }
-  const config = files.find((f) => /t-stack\.config/.test(f.path));
+  const config = files.find((f) => CONFIG_RE.test(f.path));
   if (config) {
     return config.path;
   }

@@ -40,7 +40,7 @@ function parseCfZoneFlag(
       }
       const apex = trimmed.slice(0, eq).trim();
       const zoneId = trimmed.slice(eq + 1).trim();
-      if (!apex || !zoneId) {
+      if (!(apex && zoneId)) {
         bail(
           `Invalid --cf-zone value "${trimmed}". Expected "<apex>=<zoneId>".`
         );

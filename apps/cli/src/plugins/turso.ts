@@ -53,30 +53,24 @@ export async function create(ctx: Ctx): Promise<TursoRefs> {
     if (/already exists/i.test(stderr)) {
       ctx.logger.debug(`turso.create db ${name} already exists, fetching url`);
       url = await getDbUrl(name);
-    } else {
+    } else if (/unknown flag.*output/i.test(stderr)) {
       // Some turso CLI versions don't support --output json; fall back to no-flag.
-      if (/unknown flag.*output/i.test(stderr)) {
-        try {
-          await execa(
-            "turso",
-            ["db", "create", name, "--group", DEFAULT_GROUP],
-            {
-              stdio: "pipe",
-              env: tursoEnv(),
-            }
-          );
+      try {
+        await execa("turso", ["db", "create", name, "--group", DEFAULT_GROUP], {
+          stdio: "pipe",
+          env: tursoEnv(),
+        });
+        url = await getDbUrl(name);
+      } catch (err2) {
+        const stderr2 = (err2 as { stderr?: string }).stderr ?? "";
+        if (/already exists/i.test(stderr2)) {
           url = await getDbUrl(name);
-        } catch (err2) {
-          const stderr2 = (err2 as { stderr?: string }).stderr ?? "";
-          if (/already exists/i.test(stderr2)) {
-            url = await getDbUrl(name);
-          } else {
-            throw err2;
-          }
+        } else {
+          throw err2;
         }
-      } else {
-        throw err;
       }
+    } else {
+      throw err;
     }
   }
 

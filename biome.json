@@ -1,20 +1,19 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
-  "extends": ["ultracite/biome/core"],
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
   "files": {
     "includes": [
-      "**",
       "!**/dist",
       "!**/node_modules",
       "!**/.turbo",
       "!**/.output",
       "!**/.vinxi",
-      "!**/templates/**",
-      "!packages/templates/**",
+      "!**/templates",
+      "!packages/templates",
       "!**/*.md",
-      "!**/test/fixtures/**",
+      "!**/test/fixtures",
       "!**/routeTree.gen.ts",
-      "!**/.wrangler/**"
+      "!**/.wrangler"
     ]
   },
   "javascript": {
@@ -32,37 +31,66 @@
       }
     }
   },
-  "linter": {
-    "rules": {
-      "style": {
-        "useImportType": "off",
-        "useCollapsedElseIf": "off",
-        "noNestedTernary": "off",
-        "noExportedImports": "off",
-        "useConsistentArrowReturn": "off",
-        "useConsistentTypeDefinitions": "off",
-        "noNegationElse": "off"
-      },
-      "suspicious": {
-        "noConsole": "off",
-        "noEmptyBlockStatements": "off",
-        "useAwait": "off",
-        "noEmptySource": "off",
-        "noBiomeFirstException": "off",
-        "useBiomeIgnoreFolder": "off"
-      },
-      "complexity": {
-        "noVoid": "off",
-        "noExcessiveCognitiveComplexity": "off",
-        "noUselessUndefined": "off",
-        "useSimplifiedLogicExpression": "off"
-      },
-      "performance": {
-        "useTopLevelRegex": "off",
-        "noDelete": "off",
-        "noNamespaceImport": "off",
-        "noBarrelFile": "off"
+  "overrides": [
+    {
+      "includes": ["apps/cli/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noNamespaceImport": "off",
+            "useTopLevelRegex": "off"
+          },
+          "complexity": {
+            "noVoid": "off",
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "suspicious": {
+            "useAwait": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/cli/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noEmptyBlockStatements": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/test/**", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useAwait": "off",
+            "noEmptyBlockStatements": "off",
+            "noEmptySource": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noNamespaceImport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/*/src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
       }
     }
-  }
+  ]
 }

@@ -7,7 +7,6 @@ import type {
   Archetype,
   Ctx,
   InitDecisions,
-  OrgProfile,
   Paths,
   PresetDef,
 } from "../core/preset.ts";
@@ -191,4 +190,4 @@ export async function loadPreset(
   return mod.default;
 }
 
-export type { OrgProfile };
+export type { OrgProfile } from "../core/preset.ts";

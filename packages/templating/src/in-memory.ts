@@ -1,5 +1,5 @@
 import Handlebars from "handlebars";
-import { dirname, join, relative } from "pathe";
+import { relative } from "pathe";
 
 // Register helpers on the shared instance once. Mirrors the disk-based
 // renderer in ./index.ts so the web preview and the CLI behave identically.
@@ -110,6 +110,3 @@ export function overlay(
   }
   return [...map.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
-
-void join;
-void dirname;

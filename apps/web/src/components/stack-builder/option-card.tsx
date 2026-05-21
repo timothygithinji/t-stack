@@ -26,17 +26,24 @@ export function OptionCard({
   disabledReason,
   onClick,
 }: OptionCardProps) {
+  let stateClasses: string;
+  if (selected) {
+    stateClasses =
+      "border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)]";
+  } else if (disabled) {
+    stateClasses =
+      "cursor-not-allowed border-[var(--color-destructive)]/30 bg-[var(--color-destructive)]/5 opacity-70";
+  } else {
+    stateClasses =
+      "border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-foreground)]/20 hover:bg-[var(--color-accent)]";
+  }
   return (
     <button
       aria-pressed={selected}
       className={cn(
         "group relative flex h-full w-full flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-all",
         "focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]",
-        selected
-          ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)]"
-          : disabled
-            ? "cursor-not-allowed border-[var(--color-destructive)]/30 bg-[var(--color-destructive)]/5 opacity-70"
-            : "border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-foreground)]/20 hover:bg-[var(--color-accent)]"
+        stateClasses
       )}
       disabled={disabled}
       onClick={onClick}

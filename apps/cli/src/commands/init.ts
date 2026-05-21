@@ -132,7 +132,7 @@ export async function runInit(
 
   // 4. Push initial commit (presets typically do this in `run()`, but ask anyway
   //    in case provisioning was skipped — github.pushInitial is idempotent).
-  if (!opts.yes && !provisioned) {
+  if (!(opts.yes || provisioned)) {
     const pushNow = await p.confirm({
       message: "Push initial commit to GitHub?",
       initialValue: false,
@@ -405,7 +405,7 @@ async function fetchExistingHookdeckKey(
     const v = parsed.HOOKDECK_API_KEY;
     return typeof v === "string" && v.length > 0 ? v : undefined;
   } catch {
-    return undefined;
+    return;
   }
 }
 

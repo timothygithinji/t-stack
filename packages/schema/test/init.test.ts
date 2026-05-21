@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   effectiveDatabase,
-  fieldMeta,
   fieldsForArchetype,
   initSchema,
 } from "../src/index.js";
@@ -104,6 +103,3 @@ describe("fieldMeta", () => {
     expect(key?.meta.visibleIf).toEqual({ hookdeck: true });
   });
 });
-
-// Touch the registry export so the import is exercised.
-void fieldMeta;

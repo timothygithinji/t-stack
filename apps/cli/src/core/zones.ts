@@ -16,7 +16,7 @@ export function resolveZoneForDomain(
   zones: Record<string, string>
 ): ResolvedZone | undefined {
   if (!fqdn) {
-    return undefined;
+    return;
   }
   const parts = fqdn.split(".");
   for (let i = 0; i < parts.length; i += 1) {
@@ -26,7 +26,7 @@ export function resolveZoneForDomain(
       return { apex: candidate, zoneId };
     }
   }
-  return undefined;
+  return;
 }
 
 interface CloudflareZonesResponse {
@@ -52,7 +52,7 @@ export async function discoverZoneViaCfApi(args: {
     }
   );
   if (!res.success) {
-    return undefined;
+    return;
   }
   const first = res.result?.[0];
   return first?.id;
