@@ -237,16 +237,20 @@ export const destroyCommand = defineCommand({
     cwd: { type: "string", description: "Project directory (default cwd)" },
   },
   async run({ args }) {
+    const cwd = (args.cwd as string | undefined) ?? process.cwd();
     p.intro("t-stack destroy");
     try {
       await runDestroy({
-        cwd: (args.cwd as string | undefined) ?? process.cwd(),
+        cwd,
         force: Boolean(args.force),
         only: args.only as string | undefined,
         yes: Boolean(args.yes),
       });
       p.outro("Destroyed");
     } catch (err) {
+      p.log.info(
+        `Hint: re-run with --force to continue past failures, or t-stack doctor --cwd ${cwd}`
+      );
       p.cancel(`destroy failed: ${(err as Error).message}`);
       process.exit(1);
     }

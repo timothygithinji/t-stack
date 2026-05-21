@@ -76,15 +76,16 @@ export const secretsCommand = defineCommand({
       },
       async run({ args }) {
         const env = (args.env as string | undefined) ?? "prd";
+        const cwd = (args.cwd as string | undefined) ?? process.cwd();
         p.intro(`t-stack secrets sync · ${env}`);
         try {
-          const cwd = (args.cwd as string | undefined) ?? process.cwd();
           const decisions = await loadConfig(cwd);
           const ctx = await buildCtx({ cwd, decisions, nonInteractive: true });
           await ctx.state.read();
           await runSecretsSync(ctx, env);
           p.outro(`Secrets synced · env=${env}`);
         } catch (err) {
+          p.log.info(`Hint: t-stack doctor --cwd ${cwd}`);
           p.cancel(`secrets sync failed: ${(err as Error).message}`);
           process.exit(1);
         }
@@ -101,15 +102,16 @@ export const secretsCommand = defineCommand({
       },
       async run({ args }) {
         const env = (args.env as string | undefined) ?? "dev";
+        const cwd = (args.cwd as string | undefined) ?? process.cwd();
         p.intro(`t-stack secrets pull · ${env}`);
         try {
-          const cwd = (args.cwd as string | undefined) ?? process.cwd();
           const decisions = await loadConfig(cwd);
           const ctx = await buildCtx({ cwd, decisions, nonInteractive: true });
           await ctx.state.read();
           await runSecretsPull(ctx, env);
           p.outro(`Secrets pulled · env=${env}`);
         } catch (err) {
+          p.log.info(`Hint: t-stack doctor --cwd ${cwd}`);
           p.cancel(`secrets pull failed: ${(err as Error).message}`);
           process.exit(1);
         }

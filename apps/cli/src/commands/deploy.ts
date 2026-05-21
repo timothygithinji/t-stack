@@ -93,6 +93,7 @@ export const deployCommand = defineCommand({
   async run({ args }) {
     const targetRaw = ((args.target as string | undefined) ??
       "all") as DeployTarget;
+    const cwd = (args.cwd as string | undefined) ?? process.cwd();
     p.intro(`t-stack deploy · ${targetRaw}`);
     try {
       if (!["app", "infra", "all"].includes(targetRaw)) {
@@ -101,10 +102,10 @@ export const deployCommand = defineCommand({
         );
         process.exit(1);
       }
-      const cwd = (args.cwd as string | undefined) ?? process.cwd();
       await runDeploy({ cwd, target: targetRaw });
       p.outro(`Deployed · target=${targetRaw}`);
     } catch (err) {
+      p.log.info(`Hint: t-stack doctor --cwd ${cwd}`);
       p.cancel(`deploy failed: ${(err as Error).message}`);
       process.exit(1);
     }
