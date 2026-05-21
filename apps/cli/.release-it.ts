@@ -47,6 +47,10 @@ export default {
     },
   },
   hooks: {
-    "before:init": ["bun run lint", "bun run typecheck", "bun run test"],
+    "before:init": [
+      "bun --cwd ../.. run lint",
+      "bun --cwd ../.. run typecheck",
+      "bun --cwd ../.. run test",
+    ],
   },
 } satisfies Config;

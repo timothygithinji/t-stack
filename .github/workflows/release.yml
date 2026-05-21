@@ -9,9 +9,11 @@ on:
     # docs, the workflow file itself — all excluded; use workflow_dispatch
     # if those need to release.
     paths:
-      - "src/**"
-      - "presets/**"
-      - "templates/**"
+      - "apps/cli/src/**"
+      - "apps/cli/presets/**"
+      - "apps/cli/templates/**"
+      - "packages/**"
+      - "apps/cli/package.json"
       - "package.json"
       - "bun.lock"
   workflow_dispatch:

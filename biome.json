@@ -6,9 +6,13 @@
       "**",
       "!**/dist",
       "!**/node_modules",
-      "!templates/**",
+      "!**/.turbo",
+      "!**/.output",
+      "!**/.vinxi",
+      "!**/templates/**",
+      "!packages/templates/**",
       "!**/*.md",
-      "!test/fixtures/**"
+      "!**/test/fixtures/**"
     ]
   },
   "javascript": {
