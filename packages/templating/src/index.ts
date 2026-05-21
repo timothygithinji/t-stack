@@ -40,11 +40,24 @@ async function isBinary(filePath: string): Promise<boolean> {
   return false;
 }
 
+/**
+ * GitHub Actions expressions (`${{ ... }}`) share the inner `{{ ... }}` token
+ * with Handlebars and would otherwise be consumed by the renderer — leaving
+ * a bare `$` in the output. Escape the opening braces so Handlebars emits
+ * the whole `${{ ... }}` expression literally while normal `{{var}}` slots
+ * still substitute. The matching `}}` is consumed as part of the escape.
+ */
+function escapeGhaActionsSyntax(template: string): string {
+  return template.replace(/\$\{\{/g, "$\\{{");
+}
+
 export function renderString(
   template: string,
   vars: Record<string, unknown>
 ): string {
-  return Handlebars.compile(template, { noEscape: true })(vars);
+  return Handlebars.compile(escapeGhaActionsSyntax(template), {
+    noEscape: true,
+  })(vars);
 }
 
 async function walk(dir: string): Promise<string[]> {

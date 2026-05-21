@@ -24,6 +24,25 @@ describe("renderString", () => {
     expect(renderString(tmpl, { hookdeck: true })).toBe("YES");
     expect(renderString(tmpl, { hookdeck: false })).toBe("");
   });
+
+  it("preserves GitHub Actions ghaOpen-style expressions verbatim", () => {
+    // Build the GHA literal at runtime so Biome's noTemplateCurlyInString
+    // rule (which flags `\${` inside ordinary strings) doesn't trip — the
+    // whole point of this test is that the embedded text survives intact.
+    const ghaOpen = `${"$"}{{`;
+    const ghaClose = "}}";
+    const tmpl = [
+      "project: {{projectName}}",
+      `identity-id: ${ghaOpen} vars.DOPPLER_IDENTITY_ID ${ghaClose}`,
+      `run: --identity="${ghaOpen} inputs.identity-id ${ghaClose}"`,
+    ].join("\n");
+    const expected = [
+      "project: gaff",
+      `identity-id: ${ghaOpen} vars.DOPPLER_IDENTITY_ID ${ghaClose}`,
+      `run: --identity="${ghaOpen} inputs.identity-id ${ghaClose}"`,
+    ].join("\n");
+    expect(renderString(tmpl, { projectName: "gaff" })).toBe(expected);
+  });
 });
 
 describe("renderTemplate", () => {
