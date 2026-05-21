@@ -18,11 +18,12 @@ import { mkdtemp, readFile, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "pathe";
-import { renderTemplate } from "../src/core/templating.js";
+import { renderTemplate } from "@t-stack/templating";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(SCRIPT_DIR, "..");
-const TEMPLATES_DIR = join(ROOT, "templates");
+// Templates moved to @t-stack/templates workspace package — resolve relatively
+// from this dev script (monorepo-only; not bundled with the published CLI).
+const TEMPLATES_DIR = join(SCRIPT_DIR, "../../../packages/templates/files");
 const SKIP = new Set([
   "node_modules",
   "dist",

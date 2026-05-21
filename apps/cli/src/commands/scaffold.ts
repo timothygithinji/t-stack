@@ -15,7 +15,7 @@ import type {
   OrgProfile,
 } from "../core/preset.ts";
 import type { State } from "../core/state.ts";
-import { renderTemplate } from "../core/templating.js";
+import { renderTemplate } from "@t-stack/templating";
 import { resolveZoneForDomain } from "../core/zones.js";
 import { buildPaths, findCliRoot } from "./_ctx.js";
 

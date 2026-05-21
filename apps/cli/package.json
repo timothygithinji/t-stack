@@ -36,7 +36,12 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build src/cli.ts --outdir dist --target node --format esm --packages=external",
+    "copy-templates": "bun run scripts/copy-templates.ts",
+    "prebuild": "bun run copy-templates",
+    "predev": "bun run copy-templates",
+    "pretest": "bun run copy-templates",
+    "prepack": "bun run copy-templates",
+    "build": "bun run scripts/build.ts",
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -64,6 +69,7 @@
     "execa": "9.6.1",
     "handlebars": "4.7.9",
     "libsodium-wrappers": "0.8.4",
+    "@t-stack/templating": "workspace:*",
     "ofetch": "1.5.1",
     "pathe": "2.0.3",
     "proper-lockfile": "4.1.2",

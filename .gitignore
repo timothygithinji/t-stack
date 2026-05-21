@@ -5,6 +5,9 @@ node_modules
 dist
 *.tsbuildinfo
 
+# synced template files (canonical source: packages/templates/files)
+apps/cli/templates
+
 # tooling caches
 .vitest-cache
 coverage
