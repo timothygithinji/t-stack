@@ -1,10 +1,9 @@
 import { initSchema } from "@t-stack/schema";
 import { useMemo } from "react";
-import { useStackBuilder } from "@/lib/stack-builder/use-stack-builder";
 import { asInitDecisions } from "@/lib/stack-builder/types";
+import { useStackBuilder } from "@/lib/stack-builder/use-stack-builder";
 import { CommandOutput } from "./command-output";
 import { FieldRenderer } from "./field-renderer";
-import { PresetCards } from "./preset-cards";
 import { PreviewPanel } from "./preview-panel";
 import { ShareButton } from "./share-button";
 
@@ -12,7 +11,6 @@ export function StackBuilder() {
   const {
     stack,
     setStack,
-    applyPreset,
     command,
     copyCommand,
     copied,
@@ -36,27 +34,14 @@ export function StackBuilder() {
   }, [stack]);
 
   return (
-    <div className="grid h-[calc(100vh-3.25rem)] grid-cols-1 overflow-hidden sm:grid-cols-[28rem_minmax(0,1fr)]">
+    <div className="grid h-[calc(100vh-3.25rem)] grid-cols-1 overflow-hidden sm:grid-cols-[34rem_minmax(0,1fr)]">
       <aside className="flex min-h-0 flex-col overflow-y-auto border-[var(--color-border)] border-r">
         <div className="space-y-6 p-5">
-          <section className="space-y-2">
-            <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
-              Pick an archetype
-            </h2>
-            <PresetCards onSelect={applyPreset} selected={stack.archetype} />
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
-              Configure
-            </h2>
-            <FieldRenderer
-              projectNameError={projectNameError}
-              setStack={setStack}
-              stack={stack}
-            />
-          </section>
-
+          <FieldRenderer
+            projectNameError={projectNameError}
+            setStack={setStack}
+            stack={stack}
+          />
           <button
             className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide hover:text-[var(--color-foreground)]"
             onClick={resetStack}

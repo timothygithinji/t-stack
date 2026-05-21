@@ -1,8 +1,8 @@
-import { type FieldMeta, fieldsForArchetype } from "@t-stack/schema";
-import { Info, Lock } from "lucide-react";
-import { enumChoicesForField } from "@/lib/stack-builder/schema-helpers";
+import { Terminal } from "lucide-react";
+import { CATEGORIES, type CategoryDef } from "@/lib/stack-builder/categories";
 import type { DraftStack } from "@/lib/stack-builder/types";
 import { cn } from "@/lib/utils";
+import { OptionCard } from "./option-card";
 
 interface FieldRendererProps {
   stack: DraftStack;
@@ -11,191 +11,233 @@ interface FieldRendererProps {
 }
 
 /**
- * Iterate every field declared on the active archetype and render the
- * input matching `meta.ui`. Hidden fields (visibleIf miss) are skipped.
- * Secret fields render a read-only "set at CLI prompt" notice instead of
- * an input — they're never enterable in the browser by design.
+ * Render the schema-driven form as visual selection cards organised into
+ * categories (Archetype, Database, Environments, Add-ons). Free-text fields
+ * sit in the top "Project" section as inputs. Hidden sections (e.g. Database
+ * when archetype=monorepo-cf) drop out via visibleIf.
  */
 export function FieldRenderer({
   stack,
   setStack,
   projectNameError,
 }: FieldRendererProps) {
-  const fields = fieldsForArchetype(stack.archetype).filter((f) => {
-    // org has its own input (free-text since the web has no orgs.toml).
-    if (f.name === "org") {
-      return true;
-    }
-    if (!f.meta.visibleIf) {
-      return true;
-    }
-    return Object.entries(f.meta.visibleIf).every(
-      ([k, v]) => (stack as unknown as Record<string, unknown>)[k] === v
-    );
-  });
-
   return (
-    <div className="space-y-4">
-      {fields.map((field) => (
-        <Field
-          field={field}
-          key={field.name}
-          projectNameError={
-            field.name === "projectName" ? projectNameError : null
-          }
-          setStack={setStack}
-          stack={stack}
-        />
-      ))}
+    <div className="space-y-7">
+      {CATEGORIES.map((category) => {
+        if (!shouldShow(category, stack)) {
+          return null;
+        }
+        return (
+          <CategorySection
+            category={category}
+            key={category.key}
+            projectNameError={projectNameError}
+            setStack={setStack}
+            stack={stack}
+          />
+        );
+      })}
     </div>
   );
 }
 
-interface FieldProps {
-  field: ReturnType<typeof fieldsForArchetype>[number];
+function shouldShow(category: CategoryDef, stack: DraftStack): boolean {
+  if (!category.visibleIf) {
+    return true;
+  }
+  return Object.entries(category.visibleIf).every(
+    ([k, v]) => (stack as unknown as Record<string, unknown>)[k] === v
+  );
+}
+
+interface CategorySectionProps {
+  category: CategoryDef;
   stack: DraftStack;
   setStack: (patch: Partial<DraftStack>) => void;
   projectNameError: string | null;
 }
 
-function Field({ field, stack, setStack, projectNameError }: FieldProps) {
-  const value = (stack as unknown as Record<string, unknown>)[field.name];
-  const id = `field-${field.name}`;
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <label
-          className="font-mono text-[11px] text-[var(--color-muted-foreground)] uppercase tracking-wide"
-          htmlFor={id}
-        >
-          {field.meta.label}
-        </label>
-        {field.meta.description ? (
-          <DescriptionTooltip description={field.meta.description} />
-        ) : null}
-      </div>
-      <InputForMeta
-        field={field}
-        id={id}
-        meta={field.meta}
-        setStack={setStack}
-        value={value}
-      />
-      {field.name === "projectName" && projectNameError ? (
-        <p className="text-[var(--color-destructive)] text-xs">
-          {projectNameError}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function InputForMeta({
-  field,
-  meta,
-  value,
+function CategorySection({
+  category,
+  stack,
   setStack,
-  id,
-}: {
-  field: ReturnType<typeof fieldsForArchetype>[number];
-  meta: FieldMeta;
-  value: unknown;
-  setStack: (patch: Partial<DraftStack>) => void;
-  id: string;
-}) {
-  if (meta.secret) {
-    return <SecretNotice />;
-  }
-  if (meta.ui === "toggle") {
-    return (
-      <button
-        aria-pressed={Boolean(value)}
-        className={cn(
-          "relative inline-flex h-6 w-10 items-center rounded-full transition-colors",
-          "border border-[var(--color-border)]",
-          value ? "bg-[var(--color-primary)]" : "bg-[var(--color-muted)]"
-        )}
-        id={id}
-        onClick={() =>
-          setStack({
-            [field.name]: !value,
-          } as Partial<DraftStack>)
-        }
-        type="button"
-      >
-        <span
-          className={cn(
-            "inline-block size-4 rounded-full bg-white shadow transition-transform",
-            value ? "translate-x-5" : "translate-x-1"
-          )}
+  projectNameError,
+}: CategorySectionProps) {
+  return (
+    <section>
+      <header className="mb-3 flex items-center gap-2 border-[var(--color-border)] border-b pb-2 text-[var(--color-muted-foreground)]">
+        <Terminal
+          aria-hidden
+          className="size-3.5 text-[var(--color-primary)]"
         />
-      </button>
-    );
-  }
-  if (meta.ui === "select") {
-    const choices = enumChoicesForField(field.schema) ?? [];
-    return (
-      <select
-        className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-1.5 font-mono text-sm focus:border-[var(--color-primary)] focus:outline-none"
-        id={id}
-        onChange={(e) =>
-          setStack({ [field.name]: e.target.value } as Partial<DraftStack>)
-        }
-        value={String(value ?? "")}
-      >
-        {choices.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-    );
-  }
-  // text — also used for free-text "org" since the web has no orgs.toml.
-  return (
-    <input
-      className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-1.5 font-mono text-sm focus:border-[var(--color-primary)] focus:outline-none"
-      id={id}
-      onChange={(e) =>
-        setStack({ [field.name]: e.target.value } as Partial<DraftStack>)
-      }
-      placeholder={hintFor(field.name)}
-      type="text"
-      value={String(value ?? "")}
-    />
+        <h2 className="font-mono font-semibold text-[var(--color-foreground)] text-xs uppercase tracking-wide">
+          {category.title}
+        </h2>
+      </header>
+
+      {category.variant === "input" ? (
+        <ProjectInputs
+          projectNameError={projectNameError}
+          setStack={setStack}
+          stack={stack}
+        />
+      ) : null}
+
+      {category.variant === "single" && category.options ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {category.options.map((opt) => (
+            <OptionCard
+              description={opt.description}
+              disabled={isDisabled(category, opt.value, stack)}
+              disabledReason={disabledReason(category, opt.value, stack)}
+              icon={opt.icon}
+              key={opt.value}
+              label={opt.label}
+              onClick={() => {
+                if (!category.field) {
+                  return;
+                }
+                setStack({
+                  [category.field]: opt.value,
+                } as unknown as Partial<DraftStack>);
+              }}
+              selected={
+                category.field
+                  ? (stack as unknown as Record<string, unknown>)[
+                      category.field
+                    ] === opt.value
+                  : false
+              }
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {category.variant === "toggle-group" && category.toggles ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {category.toggles.map((tog) => {
+            const value = Boolean(
+              (stack as unknown as Record<string, unknown>)[tog.field]
+            );
+            return (
+              <OptionCard
+                description={tog.description}
+                icon={tog.icon}
+                key={tog.field}
+                label={tog.label}
+                onClick={() =>
+                  setStack({
+                    [tog.field]: !value,
+                  } as unknown as Partial<DraftStack>)
+                }
+                selected={value}
+              />
+            );
+          })}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
-function SecretNotice() {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-[var(--color-border)] border-dashed bg-[var(--color-muted)] px-2.5 py-2 text-[var(--color-muted-foreground)] text-xs">
-      <Lock aria-hidden className="size-3.5" />
-      <span>You'll be prompted at the CLI when you run the command.</span>
-    </div>
-  );
+function isDisabled(
+  category: CategoryDef,
+  value: string,
+  stack: DraftStack
+): boolean {
+  // Turso requires the solo-cf-worker archetype. We hide the Database
+  // section entirely on monorepo-cf via visibleIf, but the guard stays as
+  // a belt-and-braces measure in case the URL ever forces an invalid combo.
+  if (
+    category.key === "database" &&
+    value === "turso" &&
+    stack.archetype !== "solo-cf-worker"
+  ) {
+    return true;
+  }
+  return false;
 }
 
-function DescriptionTooltip({ description }: { description: string }) {
-  return (
-    <span
-      className="cursor-help text-[var(--color-muted-foreground)]"
-      title={description}
-    >
-      <Info aria-hidden className="size-3.5" />
-    </span>
-  );
-}
-
-function hintFor(name: string): string | undefined {
-  if (name === "projectName") {
-    return "my-app";
-  }
-  if (name === "org") {
-    return "your-org-slug";
-  }
-  if (name === "domain") {
-    return "my-app.example.com";
+function disabledReason(
+  category: CategoryDef,
+  value: string,
+  stack: DraftStack
+): string | undefined {
+  if (isDisabled(category, value, stack)) {
+    return "Turso is only supported with the solo-cf-worker archetype.";
   }
   return;
+}
+
+interface ProjectInputsProps {
+  stack: DraftStack;
+  setStack: (patch: Partial<DraftStack>) => void;
+  projectNameError: string | null;
+}
+
+function ProjectInputs({
+  stack,
+  setStack,
+  projectNameError,
+}: ProjectInputsProps) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <TextField
+        error={projectNameError}
+        hint="my-app"
+        label="Project name"
+        onChange={(v) => setStack({ projectName: v })}
+        value={stack.projectName}
+      />
+      <TextField
+        hint="your-org-slug"
+        label="Org"
+        onChange={(v) => setStack({ org: v })}
+        value={stack.org}
+      />
+      <TextField
+        hint="my-app.example.com"
+        label="Domain"
+        onChange={(v) => setStack({ domain: v })}
+        value={stack.domain}
+      />
+    </div>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  hint,
+  onChange,
+  error,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  onChange: (v: string) => void;
+  error?: string | null;
+}) {
+  return (
+    <label className="space-y-1.5">
+      <span className="block font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+        {label}
+      </span>
+      <input
+        className={cn(
+          "w-full rounded-md border bg-[var(--color-card)] px-2.5 py-1.5 font-mono text-sm focus:outline-none",
+          error
+            ? "border-[var(--color-destructive)]"
+            : "border-[var(--color-border)] focus:border-[var(--color-primary)]"
+        )}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={hint}
+        type="text"
+        value={value}
+      />
+      {error ? (
+        <p className="text-[var(--color-destructive)] text-xs">{error}</p>
+      ) : null}
+    </label>
+  );
 }
