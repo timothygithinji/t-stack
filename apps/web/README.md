@@ -19,7 +19,7 @@ preview panel matches whatever the CLI would scaffold.
 
 ## Deploy
 
-`.github/workflows/web-deploy.yml` chains off the Release workflow via
+`.github/workflows/deploy.yaml` chains off the Release workflow via
 `workflow_run`: it fires after every successful `Release` run on `main`
 and checks out the exact commit that was released, so the live site
 stays in lockstep with the published CLI. Manual `workflow_dispatch`
@@ -29,18 +29,24 @@ The job runs:
 
 ```bash
 bun --filter @t-stack/web build
-bunx wrangler deploy   # from apps/web/
+doppler run -- bunx wrangler deploy   # from apps/web/
 ```
+
+Cloudflare credentials are pulled from the same Doppler `t-stack/prd`
+config the CLI reads from at scaffold time — `DOPPLER_TOKEN` is the
+only GitHub Actions secret we maintain, so org-level rotations are
+one-and-done.
 
 ### First-time setup
 
 1. **Cloudflare zone.** `timothygithinji.com` must already be a zone in
-   the target Cloudflare account. The Worker creates the
-   `t-stack.timothygithinji.com` custom domain on first deploy.
-2. **Repo secrets.** Add to GitHub Actions:
-   - `CLOUDFLARE_API_TOKEN` — token with `Workers Scripts:Edit` and
-     `Workers Routes:Edit` for the zone.
-   - `CLOUDFLARE_ACCOUNT_ID` — the account ID that owns the zone.
+   the target Cloudflare account. The Worker (`t-stack-web`) creates
+   the `t-stack.timothygithinji.com` custom domain on first deploy.
+2. **Doppler service token.** In the Doppler workplace that owns the
+   target Cloudflare account, open the `t-stack/prd` config and create
+   a Service Token. That config already has `CLOUDFLARE_API_TOKEN` from
+   `t-stack login`. Add the Service Token as the `DOPPLER_TOKEN` repo
+   secret on GitHub.
 3. **First deploy from your laptop** (optional — to verify before CI
    wiring goes live):
    ```bash
