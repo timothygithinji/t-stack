@@ -555,12 +555,13 @@ export const doctorCommand = defineCommand({
   },
   async run({ args }) {
     const cwd = (args.cwd as string | undefined) ?? process.cwd();
+    p.intro("t-stack doctor");
     const failed = await runDoctor(cwd);
     if (failed > 0) {
-      p.log.error(`${failed} check(s) failed.`);
+      p.cancel(`${failed} check(s) failed.`);
       process.exit(1);
     }
-    p.log.success("All checks passed.");
+    p.outro("All checks passed");
   },
 });
 
