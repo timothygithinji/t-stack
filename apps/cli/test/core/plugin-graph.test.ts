@@ -179,6 +179,83 @@ describe("runPluginGraph", () => {
     expect(runFn).toHaveBeenCalledTimes(1);
   });
 
+  it("invalidates downstream state entries when a step actually re-runs", async () => {
+    const ctx = await makeTestCtx();
+    const downstreamRan = vi.fn(async () => ({ pushed: true }));
+
+    const steps: PluginStep[] = [
+      {
+        id: "neon.create",
+        activate: () => true,
+        async run() {
+          return { connectionString: "postgres://new" };
+        },
+        verify: async () => false, // forces re-run via verify-on-skip
+        invalidates: ["doppler.seedSecrets"],
+      },
+      {
+        id: "doppler.seedSecrets",
+        activate: () => true,
+        run: downstreamRan,
+      },
+    ];
+
+    // Both look complete on disk to start.
+    await ctx.state.set("neon.create", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { connectionString: "postgres://old" },
+    });
+    await ctx.state.set("doppler.seedSecrets", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: {},
+    });
+
+    await runPluginGraph(ctx, steps);
+
+    // neon.create re-ran → cleared doppler.seedSecrets → doppler ran fresh.
+    expect(downstreamRan).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT invalidate dependents when an upstream step is skipped", async () => {
+    const ctx = await makeTestCtx();
+    const downstreamRan = vi.fn(async () => ({}));
+
+    const steps: PluginStep[] = [
+      {
+        id: "neon.create",
+        activate: () => true,
+        async run() {
+          return { connectionString: "postgres://x" };
+        },
+        verify: async () => true, // alive → skip
+        invalidates: ["doppler.seedSecrets"],
+      },
+      {
+        id: "doppler.seedSecrets",
+        activate: () => true,
+        run: downstreamRan,
+      },
+    ];
+
+    await ctx.state.set("neon.create", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { connectionString: "postgres://x" },
+    });
+    await ctx.state.set("doppler.seedSecrets", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: {},
+    });
+
+    await runPluginGraph(ctx, steps);
+
+    // Upstream skipped (alive), downstream should stay skipped too.
+    expect(downstreamRan).not.toHaveBeenCalled();
+  });
+
   it("records activated step ids in state.json", async () => {
     const ctx = await makeTestCtx({
       decisions: { cloudProvider: "none", databaseHost: "neon" },

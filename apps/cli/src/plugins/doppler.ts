@@ -299,6 +299,28 @@ export async function uploadSecrets(
   });
 }
 
+/**
+ * Push a single secret to every env config of the current project. Mirrors
+ * the iteration order `seedSecrets` uses so prd is always written first.
+ *
+ * Idempotent — the upload endpoint upserts, so re-running with the same value
+ * is a cheap no-op from the user's perspective. Used by leaf plugins
+ * (neon, trigger) to keep Doppler in sync with the resource they own
+ * whenever they actually run, independent of `seedSecrets` re-firing.
+ */
+export async function setProjectSecret(
+  ctx: Ctx,
+  key: string,
+  value: string
+): Promise<void> {
+  const project = slugify(ctx.projectName);
+  const envs = envSlugs(ctx);
+  const ordered = ["prd", ...envs.filter((e) => e !== "prd")];
+  for (const env of ordered) {
+    await uploadSecrets(ctx, project, env, { [key]: value });
+  }
+}
+
 export async function seedSecrets(ctx: Ctx, refs: SeedRefs): Promise<void> {
   const projectSlug = slugify(ctx.projectName);
 

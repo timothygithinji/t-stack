@@ -62,6 +62,11 @@ export default definePreset({
           return await neon.create(c);
         },
         verify: neon.verifyExists,
+        invalidates: [
+          "doppler.seedSecrets",
+          "secrets.cloudflare",
+          "cloudflare.deploy",
+        ],
       },
       {
         id: "turso.create",
@@ -69,6 +74,11 @@ export default definePreset({
         async run(c) {
           return await turso.create(c);
         },
+        invalidates: [
+          "doppler.seedSecrets",
+          "secrets.cloudflare",
+          "cloudflare.deploy",
+        ],
       },
       {
         id: "trigger.project",
@@ -77,6 +87,12 @@ export default definePreset({
           return await trigger.createProject(c);
         },
         verify: trigger.verifyExists,
+        invalidates: [
+          "doppler.seedSecrets",
+          "secrets.trigger",
+          "secrets.cloudflare",
+          "cloudflare.deploy",
+        ],
       },
       {
         id: "doppler.seedSecrets",
@@ -91,6 +107,11 @@ export default definePreset({
           await doppler.seedSecrets(c, { db, trg });
           return {};
         },
+        invalidates: [
+          "secrets.cloudflare",
+          "secrets.trigger",
+          "cloudflare.deploy",
+        ],
       },
       {
         id: "cloudflare.pulumiUp",
@@ -143,6 +164,7 @@ export default definePreset({
           await cf.pushSecrets(c, prdSecrets);
           return {};
         },
+        invalidates: ["cloudflare.deploy"],
       },
       {
         id: "secrets.gha-deploy-token",

@@ -29,6 +29,20 @@ export interface PluginStep<T = unknown> {
    * adding `verify` to a plugin is purely opt-in.
    */
   verify?: (ctx: Ctx, refs: Record<string, unknown>) => Promise<boolean>;
+  /**
+   * Step ids whose state should be cleared when *this* step's `run`
+   * actually executes (i.e. wasn't skipped via cached state). Lets a
+   * preset express "if I rebuilt, my dependents need to refresh too" —
+   * e.g. `neon.create` invalidates `doppler.seedSecrets` so a fresh
+   * connection string flows through Doppler → Worker → deploy on the
+   * same provision pass.
+   *
+   * Only cleared on a genuine re-run; a no-op skip leaves dependents
+   * alone. Invalidation transcends graph boundaries — listing a step id
+   * that lives in a later graph call (e.g. parallel batch or finalize)
+   * still clears it.
+   */
+  invalidates?: readonly string[];
 }
 
 function toRefs(value: unknown): Record<string, unknown> {
@@ -40,6 +54,22 @@ function toRefs(value: unknown): Record<string, unknown> {
 }
 
 type GateVerdict = "continue" | "skip-removed";
+
+async function invalidateDependents(
+  ctx: Ctx,
+  ids: readonly string[] | undefined
+): Promise<void> {
+  if (!ids || ids.length === 0) {
+    return;
+  }
+  await ctx.state.read();
+  for (const id of ids) {
+    if (ctx.state.get(id)) {
+      await ctx.state.remove(id);
+      ctx.logger.debug(`invalidated: ${id} (upstream re-ran)`);
+    }
+  }
+}
 
 /**
  * Run `step.verify` (if declared) against the state-cached refs for a
@@ -158,10 +188,12 @@ export async function runPluginGraph(
     if (gate === "skip-removed") {
       continue;
     }
+    let ran = false;
     try {
-      const result = await step(s.id, async () =>
-        toRefs(await s.run(ctx, deps))
-      );
+      const result = await step(s.id, async () => {
+        ran = true;
+        return toRefs(await s.run(ctx, deps));
+      });
       // Surface the original return value to downstream steps. If we wrapped a
       // primitive in `{ value }`, unwrap so callers see what they returned.
       deps[s.id] =
@@ -173,6 +205,9 @@ export async function runPluginGraph(
           : result;
     } finally {
       ctx.recreateMode = undefined;
+    }
+    if (ran) {
+      await invalidateDependents(ctx, s.invalidates);
     }
   }
   return deps;
@@ -210,9 +245,11 @@ export async function runParallel(
   const emptyDeps: StepDeps = {};
   const results = await Promise.all(
     toRun.map(async (s) => {
-      const result = await step(s.id, async () =>
-        toRefs(await s.run(ctx, emptyDeps))
-      );
+      let ran = false;
+      const result = await step(s.id, async () => {
+        ran = true;
+        return toRefs(await s.run(ctx, emptyDeps));
+      });
       const unwrapped =
         result &&
         typeof result === "object" &&
@@ -220,7 +257,7 @@ export async function runParallel(
         Object.keys(result).length === 1
           ? (result as { value: unknown }).value
           : result;
-      return [s.id, unwrapped] as const;
+      return [s.id, unwrapped, ran] as const;
     })
   );
   // Reset recreateMode once the parallel batch is done. We don't bother
@@ -228,8 +265,14 @@ export async function runParallel(
   // recreate intent (each was gated independently).
   ctx.recreateMode = undefined;
   const deps: StepDeps = {};
-  for (const [id, value] of results) {
+  // Invalidate downstream serially AFTER the batch so we don't race against
+  // siblings that might be writing the same state file.
+  for (const [id, value, ran] of results) {
     deps[id] = value;
+    if (ran) {
+      const s = toRun.find((x) => x.id === id);
+      await invalidateDependents(ctx, s?.invalidates);
+    }
   }
   return deps;
 }

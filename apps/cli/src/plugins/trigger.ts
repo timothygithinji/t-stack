@@ -1,5 +1,6 @@
 import { ofetch } from "ofetch";
 import type { Ctx } from "../core/preset.ts";
+import * as doppler from "./doppler.js";
 
 const TRIGGER_API_BASE = "https://api.trigger.dev/api/v1";
 
@@ -144,6 +145,17 @@ export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
     throw new Error("Trigger.dev project missing ref/id in response");
   }
   const secretKey = await fetchProdSecretKey(ctx, projectRef);
+
+  // Push to Doppler on every run so re-creation propagates without waiting
+  // for doppler.seedSecrets to re-fire. See neon.create for the same pattern.
+  try {
+    await doppler.setProjectSecret(ctx, "TRIGGER_SECRET_KEY", secretKey);
+  } catch (err) {
+    ctx.logger.debug(
+      `trigger.createProject: pushing TRIGGER_SECRET_KEY to Doppler failed: ${(err as Error).message}`
+    );
+  }
+
   return { projectRef, slug: project.slug, secretKey };
 }
 

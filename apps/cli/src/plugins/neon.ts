@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import * as p from "@clack/prompts";
 import { execa } from "execa";
 import { ofetch } from "ofetch";
 import { join } from "pathe";
 import type { Ctx } from "../core/preset.ts";
+import * as doppler from "./doppler.js";
 
 export interface NeonRefs {
   projectId: string;
@@ -74,6 +76,30 @@ function readNeonctlToken(): string | undefined {
   } catch {
     return;
   }
+}
+
+/**
+ * Interactive region picker used when `neon.create` is about to create a new
+ * project and `ctx.decisions.databaseRegion` is missing. Duplicates the select
+ * prompt that `init`'s field resolver renders, but lives here so re-creation
+ * paths (which bypass init's prompt loop) still surface the choice.
+ */
+async function promptRegion(): Promise<string> {
+  const regions = await listRegions();
+  const fallback = regions.find((r) => r.default)?.region_id ?? "aws-us-east-1";
+  const choice = await p.select({
+    message:
+      "Neon region (no `databaseRegion` in config — picking one for this project)",
+    options: regions.map((r) => ({
+      value: r.region_id,
+      label: r.default ? `${r.name} (default)` : r.name,
+    })),
+    initialValue: fallback,
+  });
+  if (p.isCancel(choice)) {
+    throw new Error("Cancelled.");
+  }
+  return String(choice);
 }
 
 /**
@@ -218,8 +244,13 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
     }
     // loadConfig doesn't apply Zod defaults, so legacy configs that pre-date
     // databaseRegion will have `undefined` here at runtime even though the
-    // type says string. The conditional below preserves that path.
-    const region = ctx.decisions.databaseRegion as string | undefined;
+    // type says string. Prompt the user (interactively) when we're about to
+    // create a new project and the choice hasn't been made yet — otherwise
+    // neonctl would silently pick its own default region.
+    let region = ctx.decisions.databaseRegion as string | undefined;
+    if (!(region || ctx.nonInteractive)) {
+      region = await promptRegion();
+    }
     const args = [
       "projects",
       "create",
@@ -248,6 +279,23 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
   }
 
   const connectionString = await fetchConnectionString(ctx, projectId);
+
+  // Keep Doppler in sync with the resource we just owned: push DATABASE_URL
+  // every time `create` runs, regardless of adopt vs new. This is what makes
+  // re-running neon.create self-healing — without it, a fresh Neon project
+  // would leave doppler.seedSecrets pointing at the deleted previous one
+  // (since that step skips when its own refs aren't redacted). Idempotent:
+  // Doppler upserts, so writing the same value is a cheap no-op.
+  try {
+    await doppler.setProjectSecret(ctx, "DATABASE_URL", connectionString);
+  } catch (err) {
+    // Don't fail the whole step if Doppler is unreachable — the dependency
+    // cascade (doppler.seedSecrets invalidation) will give the user a clean
+    // retry. Log so it's not silent.
+    ctx.logger.debug(
+      `neon.create: pushing DATABASE_URL to Doppler failed: ${(err as Error).message}`
+    );
+  }
   return { projectId, projectName, branchId, connectionString };
 }
 
