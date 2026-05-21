@@ -35,7 +35,12 @@ export interface FieldMeta {
   secret?: boolean;
   visibleIf?: Record<string, unknown>;
   defaultFrom?: string;
-  source?: "orgsToml" | "doppler" | `env:${string}` | `doppler:${string}`;
+  source?:
+    | "orgsToml"
+    | "doppler"
+    | "neon:regions"
+    | `env:${string}`
+    | `doppler:${string}`;
   valueRules?: Record<string, FieldValueRule>;
 }
 

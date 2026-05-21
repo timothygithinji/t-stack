@@ -55,6 +55,7 @@ export function buildCittyArgs(): ArgsDef {
     {},
     { hookdeck: true },
     { structure: "monorepo" },
+    { databaseHost: "neon" },
   ];
   for (const seed of passes) {
     for (const { name, schema, meta } of walkFields(seed)) {

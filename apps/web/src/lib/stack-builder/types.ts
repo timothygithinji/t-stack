@@ -29,6 +29,7 @@ export const DEFAULT_STACK: DraftStack = {
   api: "none",
   database: "postgres",
   databaseHost: "neon",
+  databaseRegion: "aws-us-east-1",
   orm: "drizzle",
   auth: "better-auth",
   storage: "none",

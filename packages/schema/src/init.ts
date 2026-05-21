@@ -165,6 +165,17 @@ const databaseHost = z
     },
   });
 
+const databaseRegion = z
+  .string()
+  .default("aws-us-east-1")
+  .register(fieldMeta, {
+    ui: "select",
+    label: "Database region",
+    description: "Neon region for the project (fetched live)",
+    visibleIf: { databaseHost: "neon" },
+    source: "neon:regions",
+  });
+
 const orm = z
   .enum(["drizzle", "none"])
   .default("drizzle")
@@ -310,6 +321,7 @@ export const initSchema = z.object({
   api,
   database,
   databaseHost,
+  databaseRegion,
   orm,
   auth,
   storage,

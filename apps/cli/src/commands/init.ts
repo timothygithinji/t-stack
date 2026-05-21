@@ -21,6 +21,7 @@ import {
 import { loadTokens } from "../core/tokens.js";
 import { discoverZoneViaCfApi, resolveZoneForDomain } from "../core/zones.js";
 import { orgScope as dopplerOrgScope } from "../plugins/doppler.js";
+import { listRegions as listNeonRegions } from "../plugins/neon.js";
 import { findCliRoot, listPresetIds, loadPreset } from "./_ctx.js";
 import { runDeploy } from "./deploy.js";
 import { runProvision } from "./provision.js";
@@ -85,6 +86,7 @@ function renderDecisionsSummary(
       rows: [
         ["Database", decisions.database],
         ["Host", decisions.databaseHost],
+        ["Region", decisions.databaseRegion],
         ["ORM", decisions.orm],
       ],
     },
@@ -465,6 +467,22 @@ async function resolveField(args: ResolveFieldArgs): Promise<unknown> {
     });
   }
 
+  // Special case: databaseRegion's choices come from the Neon API at prompt
+  // time (`source: "neon:regions"`) — the default schema resolver only handles
+  // static Zod enums.
+  if (
+    args.field.name === "databaseRegion" &&
+    args.values.databaseHost === "neon"
+  ) {
+    return await resolveNeonRegion({
+      flagValue: args.flagValue as string | undefined,
+      yes: args.yes,
+      schemaDefault: (
+        args.field.schema._zod?.def as { defaultValue?: unknown } | undefined
+      )?.defaultValue,
+    });
+  }
+
   return defaultResolver({
     name: args.field.name,
     schema: args.field.schema,
@@ -664,6 +682,46 @@ async function resolveHookdeckApiKey(
     bail("Hookdeck is enabled but no API key was provided.");
   }
   return key;
+}
+
+interface ResolveNeonRegionArgs {
+  flagValue: string | undefined;
+  yes: boolean;
+  schemaDefault: unknown;
+}
+
+async function resolveNeonRegion(args: ResolveNeonRegionArgs): Promise<string> {
+  if (args.flagValue && args.flagValue.length > 0) {
+    return args.flagValue;
+  }
+  const defaultStr =
+    typeof args.schemaDefault === "string" ? args.schemaDefault : undefined;
+  const regions = await listNeonRegions();
+  // Neon flags one entry as `default: true`. Prefer that over our hard-coded
+  // fallback so we track Neon's own recommendation when it changes.
+  const neonDefault =
+    regions.find((r) => r.default)?.region_id ??
+    defaultStr ??
+    regions[0]?.region_id;
+  if (args.yes) {
+    return neonDefault ?? "aws-us-east-1";
+  }
+  const initial =
+    defaultStr && regions.some((r) => r.region_id === defaultStr)
+      ? defaultStr
+      : neonDefault;
+  const v = await p.select({
+    message: "Neon region",
+    options: regions.map((r) => ({
+      value: r.region_id,
+      label: r.default ? `${r.name} (default)` : r.name,
+    })),
+    initialValue: initial,
+  });
+  if (p.isCancel(v)) {
+    bail("Cancelled.");
+  }
+  return String(v);
 }
 
 export default initCommand;

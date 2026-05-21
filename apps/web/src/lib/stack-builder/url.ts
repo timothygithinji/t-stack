@@ -24,6 +24,7 @@ const KEY_MAP: Record<keyof DraftStack, string> = {
   api: "api",
   database: "db",
   databaseHost: "dh",
+  databaseRegion: "dr",
   orm: "orm",
   auth: "au",
   storage: "sto",
@@ -84,6 +85,7 @@ const STRING_FIELDS = new Set<keyof DraftStack>([
   "projectName",
   "org",
   "domain",
+  "databaseRegion",
   "hookdeckApiKey",
 ]);
 

@@ -13,6 +13,7 @@ export default {
   api: "{{d.api}}",
   database: "{{d.database}}",
   databaseHost: "{{d.databaseHost}}",
+  databaseRegion: "{{d.databaseRegion}}",
   orm: "{{d.orm}}",
   auth: "{{d.auth}}",
   storage: "{{d.storage}}",

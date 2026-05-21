@@ -1,4 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { execa } from "execa";
+import { ofetch } from "ofetch";
+import { join } from "pathe";
 import type { Ctx } from "../core/preset.ts";
 
 export interface NeonRefs {
@@ -6,6 +10,93 @@ export interface NeonRefs {
   projectName: string;
   branchId: string;
   connectionString: string;
+}
+
+export interface NeonRegion {
+  region_id: string;
+  name: string;
+  default: boolean;
+}
+
+/**
+ * Static fallback used when the Neon API is unreachable or the user hasn't
+ * authenticated via `neonctl auth` yet. Mirrors the values surfaced in
+ * `neonctl projects create --help` at the time of writing.
+ */
+const STATIC_NEON_REGIONS: NeonRegion[] = [
+  {
+    region_id: "aws-us-east-1",
+    name: "AWS US East 1 (N. Virginia)",
+    default: true,
+  },
+  { region_id: "aws-us-east-2", name: "AWS US East 2 (Ohio)", default: false },
+  {
+    region_id: "aws-us-west-2",
+    name: "AWS US West 2 (Oregon)",
+    default: false,
+  },
+  {
+    region_id: "aws-eu-central-1",
+    name: "AWS Europe Central 1 (Frankfurt)",
+    default: false,
+  },
+  {
+    region_id: "aws-ap-southeast-1",
+    name: "AWS Asia Pacific 1 (Singapore)",
+    default: false,
+  },
+  {
+    region_id: "aws-ap-southeast-2",
+    name: "AWS Asia Pacific 2 (Sydney)",
+    default: false,
+  },
+  {
+    region_id: "azure-eastus2",
+    name: "Azure East US 2 (Virginia)",
+    default: false,
+  },
+];
+
+function neonctlCredsPath(): string {
+  const xdg = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config");
+  return join(xdg, "neonctl", "credentials.json");
+}
+
+function readNeonctlToken(): string | undefined {
+  const path = neonctlCredsPath();
+  if (!existsSync(path)) {
+    return;
+  }
+  try {
+    const raw = readFileSync(path, "utf8");
+    const parsed = JSON.parse(raw) as { access_token?: string };
+    return parsed.access_token;
+  } catch {
+    return;
+  }
+}
+
+/**
+ * List Neon's currently-supported regions. Fetched live from the API when the
+ * user has neonctl credentials cached locally; falls back to a static list
+ * otherwise so init can still surface a choice without forcing a prior auth.
+ */
+export async function listRegions(): Promise<NeonRegion[]> {
+  const token = readNeonctlToken();
+  if (token) {
+    try {
+      const res = await ofetch<{ regions: NeonRegion[] }>(
+        "https://console.neon.tech/api/v2/regions",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (Array.isArray(res.regions) && res.regions.length > 0) {
+        return res.regions;
+      }
+    } catch {
+      // fall through to static
+    }
+  }
+  return STATIC_NEON_REGIONS;
 }
 
 interface NeonProjectListItem {
@@ -114,12 +205,17 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
     projectName = existing.name;
     branchId = existing.default_branch_id;
   } else {
+    // loadConfig doesn't apply Zod defaults, so legacy configs that pre-date
+    // databaseRegion will have `undefined` here at runtime even though the
+    // type says string. The conditional below preserves that path.
+    const region = ctx.decisions.databaseRegion as string | undefined;
     const args = [
       "projects",
       "create",
       "--name",
       name,
       ...orgArgs(ctx),
+      ...(region ? ["--region-id", region] : []),
       "--output",
       "json",
     ];

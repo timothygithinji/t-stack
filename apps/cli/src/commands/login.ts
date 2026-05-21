@@ -140,6 +140,7 @@ export const loginCommand = defineCommand({
         api: "none",
         database: "postgres",
         databaseHost: "neon",
+        databaseRegion: "aws-us-east-1",
         orm: "drizzle",
         auth: "better-auth",
         storage: "none",

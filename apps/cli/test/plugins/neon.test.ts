@@ -160,6 +160,37 @@ describe("neon.create", () => {
     expect(calls.some(isCreateCall)).toBe(false);
   });
 
+  it("passes --region-id to neonctl when databaseRegion is set in decisions", async () => {
+    setHandlers([
+      (c) => {
+        if (isListCall(c)) {
+          return { stdout: JSON.stringify([]) };
+        }
+        if (isCreateCall(c)) {
+          return {
+            stdout: JSON.stringify({
+              project: { id: "p1", name: "demo", default_branch_id: "br1" },
+              branch: { id: "br1" },
+            }),
+          };
+        }
+        if (isConnStringCall(c)) {
+          return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
+        }
+        return;
+      },
+    ]);
+
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      decisions: { databaseRegion: "aws-eu-central-1" },
+    });
+    await create(ctx);
+    const createCall = calls.find(isCreateCall);
+    expect(createCall?.args).toContain("--region-id");
+    expect(createCall?.args).toContain("aws-eu-central-1");
+  });
+
   it("is idempotent — second call returns the same connectionString without re-creating", async () => {
     setHandlers([
       (c) => {
