@@ -2,6 +2,12 @@
 
 
 
+## [0.7.0](https://github.com/timothygithinji/t-stack/compare/v0.6.0...v0.7.0) (2026-05-21)
+
+### Features
+
+* **cli:** make resource plugins idempotent and cascade invalidation downstream ([7684597](https://github.com/timothygithinji/t-stack/commit/76845970b4560184a6afb648355e648decfa85aa))
+
 ## [0.6.0](https://github.com/timothygithinji/t-stack/compare/v0.5.1...v0.6.0) (2026-05-21)
 
 ### Features
