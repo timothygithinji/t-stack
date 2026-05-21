@@ -1,105 +1,184 @@
 import { describe, expect, it } from "vitest";
 import {
-  effectiveDatabase,
-  fieldsForArchetype,
+  evaluateField,
+  fieldMeta,
   initSchema,
+  isFieldVisible,
+  validateDecisions,
+  walkFields,
 } from "../src/index.js";
 
-describe("initSchema", () => {
-  it("parses a valid solo-cf-worker payload", () => {
-    const parsed = initSchema.parse({
-      archetype: "solo-cf-worker",
-      projectName: "my-app",
-      org: "personal",
-      domain: "my-app.example.com",
-      database: "turso",
-      envs: "dev+prd",
-      trigger: true,
-      access: false,
-      hookdeck: false,
-    });
-    expect(parsed.archetype).toBe("solo-cf-worker");
-    if (parsed.archetype === "solo-cf-worker") {
-      expect(parsed.database).toBe("turso");
-    }
-  });
+const CLOUDFLARE_REASON_RE = /Cloudflare/i;
+const POSTGRES_REASON_RE = /Postgres/i;
 
-  it("parses a valid monorepo-cf payload without a database field", () => {
-    const parsed = initSchema.parse({
-      archetype: "monorepo-cf",
-      projectName: "my-app",
-      org: "personal",
-      domain: "my-app.example.com",
-      envs: "prd",
-      trigger: false,
-      access: false,
-      hookdeck: false,
-    });
-    expect(parsed.archetype).toBe("monorepo-cf");
-    expect(effectiveDatabase(parsed)).toBe("neon");
+const basePayload = {
+  projectName: "my-app",
+  org: "personal",
+  domain: "my-app.example.com",
+  structure: "single" as const,
+  cloudProvider: "cloudflare" as const,
+  iac: "pulumi" as const,
+  runtime: "workers" as const,
+  frontend: "none" as const,
+  backend: "hono" as const,
+  docs: "none" as const,
+  api: "none" as const,
+  database: "postgres" as const,
+  databaseHost: "neon" as const,
+  orm: "drizzle" as const,
+  auth: "better-auth" as const,
+  storage: "none" as const,
+  payments: "none" as const,
+  addons: [],
+  packageManager: "bun" as const,
+  git: true,
+  install: true,
+  envs: "prd" as const,
+  trigger: true,
+  access: false,
+  hookdeck: false,
+};
+
+describe("initSchema", () => {
+  it("parses a valid full payload", () => {
+    const parsed = initSchema.parse(basePayload);
+    expect(parsed.projectName).toBe("my-app");
+    expect(parsed.runtime).toBe("workers");
+    expect(parsed.databaseHost).toBe("neon");
   });
 
   it("rejects an invalid project name", () => {
     const result = initSchema.safeParse({
-      archetype: "solo-cf-worker",
+      ...basePayload,
       projectName: "Has Spaces",
-      org: "personal",
-      domain: "my-app.example.com",
-      database: "neon",
-      envs: "prd",
-      trigger: false,
-      access: false,
-      hookdeck: false,
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects monorepo-cf payloads that try to set a database", () => {
-    const result = initSchema.safeParse({
-      archetype: "monorepo-cf",
+  it("applies enum defaults when fields are omitted", () => {
+    const parsed = initSchema.parse({
       projectName: "my-app",
       org: "personal",
       domain: "my-app.example.com",
-      database: "turso",
-      envs: "prd",
-      trigger: false,
-      access: false,
-      hookdeck: false,
     });
-    // Excess properties pass by default in zod; this just confirms the
-    // schema parses without elevating database to a real field.
-    expect(result.success).toBe(true);
-    if (result.success && result.data.archetype === "monorepo-cf") {
-      // database isn't in the schema for mono, so it shouldn't exist on the
-      // parsed object.
-      expect("database" in result.data).toBe(false);
+    expect(parsed.structure).toBe("single");
+    expect(parsed.runtime).toBe("workers");
+    expect(parsed.database).toBe("postgres");
+    expect(parsed.addons).toEqual([]);
+  });
+});
+
+describe("walkFields", () => {
+  it("returns visible fields in declaration order", () => {
+    const names = walkFields(basePayload).map((f) => f.name);
+    expect(names[0]).toBe("projectName");
+    const structureIdx = names.indexOf("structure");
+    const runtimeIdx = names.indexOf("runtime");
+    expect(structureIdx).toBeGreaterThan(-1);
+    expect(runtimeIdx).toBeGreaterThan(structureIdx);
+  });
+
+  it("attaches ui+label meta to every field", () => {
+    for (const { name, meta } of walkFields(basePayload)) {
+      expect(meta.ui, `field ${name} missing ui`).toBeTruthy();
+      expect(meta.label, `field ${name} missing label`).toBeTruthy();
     }
   });
 });
 
-describe("fieldMeta", () => {
-  it("attaches meta to every non-discriminator field", () => {
-    for (const archetype of ["solo-cf-worker", "monorepo-cf"] as const) {
-      const fields = fieldsForArchetype(archetype);
-      for (const { name, meta } of fields) {
-        expect(meta.ui, `field ${name} missing ui`).toBeTruthy();
-        expect(meta.label, `field ${name} missing label`).toBeTruthy();
-      }
+describe("isFieldVisible", () => {
+  it("hides docs when structure=single", () => {
+    const docsSchema = initSchema.shape.docs;
+    const meta = fieldMeta.get(docsSchema);
+    expect(meta).toBeDefined();
+    if (!meta) {
+      return;
     }
+    expect(isFieldVisible(meta, { structure: "single" })).toBe(false);
+    expect(isFieldVisible(meta, { structure: "monorepo" })).toBe(true);
   });
 
-  it("includes database only on solo-cf-worker", () => {
-    const solo = fieldsForArchetype("solo-cf-worker").map((f) => f.name);
-    const mono = fieldsForArchetype("monorepo-cf").map((f) => f.name);
-    expect(solo).toContain("database");
-    expect(mono).not.toContain("database");
+  it("keeps hookdeckApiKey visibleIf {hookdeck: true}", () => {
+    const schema = initSchema.shape.hookdeckApiKey;
+    const meta = fieldMeta.get(schema);
+    expect(meta?.visibleIf).toEqual({ hookdeck: true });
+  });
+});
+
+describe("evaluateField", () => {
+  it("disables runtime=workers when cloudProvider=none", () => {
+    const meta = fieldMeta.get(initSchema.shape.runtime);
+    expect(meta).toBeDefined();
+    if (!meta) {
+      return;
+    }
+    const availability = evaluateField(
+      meta,
+      ["workers", "node", "bun", "none"],
+      { cloudProvider: "none" }
+    );
+    const workers = availability.find((a) => a.value === "workers");
+    expect(workers?.enabled).toBe(false);
+    expect(workers?.reason).toMatch(CLOUDFLARE_REASON_RE);
+    const node = availability.find((a) => a.value === "node");
+    expect(node?.enabled).toBe(true);
   });
 
-  it("marks hookdeckApiKey as secret + visibleIf hookdeck", () => {
-    const fields = fieldsForArchetype("solo-cf-worker");
-    const key = fields.find((f) => f.name === "hookdeckApiKey");
-    expect(key).toBeDefined();
-    expect(key?.meta.secret).toBe(true);
-    expect(key?.meta.visibleIf).toEqual({ hookdeck: true });
+  it("treats undecided dependent fields as satisfied", () => {
+    const meta = fieldMeta.get(initSchema.shape.runtime);
+    if (!meta) {
+      throw new Error("missing runtime meta");
+    }
+    const availability = evaluateField(
+      meta,
+      ["workers", "node", "bun", "none"],
+      {}
+    );
+    expect(availability.every((a) => a.enabled)).toBe(true);
+  });
+
+  it("disables turborepo addon when structure=single", () => {
+    const meta = fieldMeta.get(initSchema.shape.addons);
+    if (!meta) {
+      throw new Error("missing addons meta");
+    }
+    const availability = evaluateField(meta, ["biome", "turborepo", "husky"], {
+      structure: "single",
+    });
+    const turbo = availability.find((a) => a.value === "turborepo");
+    expect(turbo?.enabled).toBe(false);
+  });
+});
+
+describe("validateDecisions", () => {
+  it("flags databaseHost=neon with database=sqlite", () => {
+    const violations = validateDecisions(initSchema, {
+      ...basePayload,
+      database: "sqlite",
+      databaseHost: "neon",
+    });
+    const v = violations.find(
+      (x) => x.field === "databaseHost" && x.value === "neon"
+    );
+    expect(v).toBeDefined();
+    expect(v?.conflict).toMatch(POSTGRES_REASON_RE);
+  });
+
+  it("returns no violations for a self-consistent payload", () => {
+    const violations = validateDecisions(initSchema, basePayload);
+    expect(violations).toEqual([]);
+  });
+
+  it("flags backend=tanstack-start with runtime=workers", () => {
+    const violations = validateDecisions(initSchema, {
+      ...basePayload,
+      backend: "tanstack-start",
+      runtime: "workers",
+    });
+    expect(
+      violations.some(
+        (v) => v.field === "backend" && v.value === "tanstack-start"
+      )
+    ).toBe(true);
   });
 });

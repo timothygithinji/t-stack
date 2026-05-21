@@ -7,6 +7,7 @@ import type {
   InitDecisions,
   OrgProfile,
   Paths,
+  PresetDef,
 } from "../src/core/preset.ts";
 import { type StateStore, createStateStore } from "../src/core/state.js";
 import type { TokenBag } from "../src/core/tokens.ts";
@@ -35,9 +36,25 @@ export function defaultDecisions(
   return {
     org: "fanya-labs",
     projectName: "demo",
-    archetype: "solo-cf-worker",
     domain: "demo.fanyalabs.dev",
-    database: "neon",
+    structure: "single",
+    cloudProvider: "cloudflare",
+    iac: "pulumi",
+    runtime: "workers",
+    frontend: "none",
+    backend: "hono",
+    docs: "none",
+    api: "none",
+    database: "postgres",
+    databaseHost: "neon",
+    orm: "drizzle",
+    auth: "better-auth",
+    storage: "none",
+    payments: "none",
+    addons: [],
+    packageManager: "bun",
+    git: true,
+    install: true,
     envs: "dev+prd",
     trigger: false,
     access: false,
@@ -55,12 +72,31 @@ export function defaultTokens(overrides: Partial<TokenBag> = {}): TokenBag {
   };
 }
 
+/**
+ * Lightweight stand-in for a PresetDef. Tests rarely invoke `run()`, so we
+ * provide a no-op. Override fields as needed.
+ */
+export function defaultPreset(overrides: Partial<PresetDef> = {}): PresetDef {
+  return {
+    id: "solo-cf-worker",
+    name: "Solo CF Worker",
+    description: "Test stub preset",
+    defaults: {},
+    templates: ["_base", "solo-cf-worker"],
+    async run() {
+      // no-op for tests
+    },
+    ...overrides,
+  };
+}
+
 export interface MakeCtxOptions {
   cwd?: string;
   projectName?: string;
   org?: Partial<OrgProfile>;
   decisions?: Partial<InitDecisions>;
   tokens?: Partial<TokenBag>;
+  preset?: PresetDef;
 }
 
 export async function makeTestCtx(opts: MakeCtxOptions = {}): Promise<Ctx> {
@@ -82,11 +118,12 @@ export async function makeTestCtx(opts: MakeCtxOptions = {}): Promise<Ctx> {
   const state: StateStore = createStateStore(paths.stateFile);
   await state.read();
   const logger = createSilentLogger();
+  const preset = opts.preset ?? defaultPreset();
 
   return {
     org,
     projectName,
-    archetype: decisions.archetype,
+    preset,
     decisions,
     paths,
     logger,

@@ -8,7 +8,6 @@ const LEADING_QUESTION_MARK = /^\?/;
 interface UseStackBuilderResult {
   stack: DraftStack;
   setStack: (patch: Partial<DraftStack>) => void;
-  applyPreset: (preset: DraftStack["archetype"]) => void;
   command: string;
   resetStack: () => void;
   copyCommand: () => Promise<void>;
@@ -23,6 +22,11 @@ interface UseStackBuilderResult {
  * so configs are shareable links — only fields that differ from defaults are
  * serialised, keeping the URL compact. Re-validates the command + share URL
  * on every change.
+ *
+ * Cross-field compatibility (e.g. "Turso requires sqlite") is enforced at
+ * render time via the schema's `valueRules` predicate, not here — the
+ * `setStack` patcher is intentionally dumb so the user can move freely
+ * between adjacent states and the form surfaces disabled cards instead.
  */
 export function useStackBuilder(): UseStackBuilderResult {
   const [stack, setStackState] = useState<DraftStack>(() => {
@@ -49,22 +53,8 @@ export function useStackBuilder(): UseStackBuilderResult {
   }, [stack]);
 
   const setStack = useCallback((patch: Partial<DraftStack>) => {
-    setStackState((prev) => {
-      const next = { ...prev, ...patch };
-      // Switching to mono forces neon — solo can pick either.
-      if (next.archetype === "monorepo-cf") {
-        next.database = "neon";
-      }
-      return next;
-    });
+    setStackState((prev) => ({ ...prev, ...patch }));
   }, []);
-
-  const applyPreset = useCallback(
-    (preset: DraftStack["archetype"]) => {
-      setStack({ archetype: preset });
-    },
-    [setStack]
-  );
 
   const resetStack = useCallback(() => {
     setStackState(DEFAULT_STACK);
@@ -102,7 +92,6 @@ export function useStackBuilder(): UseStackBuilderResult {
   return {
     stack,
     setStack,
-    applyPreset,
     command,
     resetStack,
     copyCommand,

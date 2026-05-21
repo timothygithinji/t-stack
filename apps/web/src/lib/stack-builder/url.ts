@@ -1,102 +1,204 @@
 import { type DraftStack, DEFAULT_STACK } from "./types";
 
 /**
- * Shorthand keys keep the shareable URL compact:
- *   ?a=s&n=my-app&db=neon&e=prd&t=1
- * Long form (`archetype`) still parses for backwards-compat / readability.
+ * Shareable URL serialisation. Each axis gets a 1-3 char query param so the
+ * full stack fits comfortably in a single URL:
+ *   ?st=monorepo&fe=tanstack-router&db=sqlite&dh=turso
+ *
+ * Only fields that differ from `DEFAULT_STACK` are emitted, so the common
+ * case (the default stack) produces an empty query string. Pre-release we
+ * don't carry the old `?a=…` archetype URLs forward — they just decode to
+ * defaults.
  */
 const KEY_MAP: Record<keyof DraftStack, string> = {
-  archetype: "a",
   projectName: "n",
   org: "o",
   domain: "d",
+  structure: "st",
+  cloudProvider: "cp",
+  iac: "iac",
+  runtime: "rt",
+  frontend: "fe",
+  backend: "be",
+  docs: "dc",
+  api: "api",
   database: "db",
+  databaseHost: "dh",
+  orm: "orm",
+  auth: "au",
+  storage: "sto",
+  payments: "pay",
+  addons: "ad",
+  packageManager: "pm",
+  git: "g",
+  install: "i",
   envs: "e",
   trigger: "t",
   access: "ac",
   hookdeck: "h",
+  hookdeckApiKey: "hk",
 };
 
-const ARCHETYPE_SHORT: Record<DraftStack["archetype"], string> = {
-  "solo-cf-worker": "s",
-  "monorepo-cf": "m",
-};
-const ARCHETYPE_LONG = Object.fromEntries(
-  Object.entries(ARCHETYPE_SHORT).map(([k, v]) => [v, k])
-) as Record<string, DraftStack["archetype"]>;
+// Per-field enum allow-lists. Duplicated from `packages/schema` on purpose:
+// the web is a different package and the schema's runtime introspection
+// helpers (enumChoicesForField) live next door but we want the URL parser
+// to stay statically typed without a Zod walk on every page load.
+const ENUM_VALUES = {
+  structure: ["single", "monorepo"],
+  cloudProvider: ["cloudflare", "none"],
+  iac: ["pulumi", "none"],
+  runtime: ["workers", "node", "bun", "none"],
+  frontend: ["tanstack-start", "tanstack-router", "astro", "none"],
+  backend: ["hono", "tanstack-start", "none"],
+  docs: ["starlight", "none"],
+  api: ["orpc", "none"],
+  database: ["postgres", "sqlite", "none"],
+  databaseHost: ["neon", "turso", "d1", "none"],
+  orm: ["drizzle", "none"],
+  auth: ["better-auth", "none"],
+  storage: ["r2", "tigris", "none"],
+  payments: ["stripe", "none"],
+  packageManager: ["bun", "pnpm"],
+  envs: ["prd", "dev+prd", "dev+stg+prd"],
+} as const satisfies Partial<Record<keyof DraftStack, readonly string[]>>;
 
+const ADDON_VALUES = [
+  "biome",
+  "husky",
+  "turborepo",
+  "fallow",
+  "commitlint",
+  "release-it",
+  "ultracite",
+] as const;
+
+const BOOLEAN_FIELDS = new Set<keyof DraftStack>([
+  "git",
+  "install",
+  "trigger",
+  "access",
+  "hookdeck",
+]);
+
+const STRING_FIELDS = new Set<keyof DraftStack>([
+  "projectName",
+  "org",
+  "domain",
+  "hookdeckApiKey",
+]);
+
+function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: per-field encoding requires branching by kind (array | bool | string | enum).
 export function encodeStack(stack: DraftStack): string {
   const params = new URLSearchParams();
-  // Only emit fields that differ from defaults — keeps URLs short.
-  for (const [field, short] of Object.entries(KEY_MAP) as [
+
+  for (const [rawField, short] of Object.entries(KEY_MAP) as [
     keyof DraftStack,
     string,
   ][]) {
-    const value = stack[field];
-    const def = DEFAULT_STACK[field];
+    const value = stack[rawField];
+    const def = DEFAULT_STACK[rawField];
+
+    if (rawField === "addons") {
+      const next = (value as string[]) ?? [];
+      const prev = (def as string[]) ?? [];
+      if (arraysEqual(next, prev)) {
+        continue;
+      }
+      // Sort on the wire so two equivalent stacks produce the same URL.
+      // Empty array represented as a single empty value so the decoder can
+      // distinguish "user cleared addons" from "field not in URL".
+      params.set(short, [...next].sort().join(","));
+      continue;
+    }
+
     if (value === def) {
       continue;
     }
-    if (field === "archetype") {
-      params.set(short, ARCHETYPE_SHORT[stack.archetype]);
-    } else if (typeof value === "boolean") {
+
+    if (BOOLEAN_FIELDS.has(rawField)) {
       params.set(short, value ? "1" : "0");
-    } else if (value !== "") {
+      continue;
+    }
+
+    if (STRING_FIELDS.has(rawField)) {
+      if (value === "" || value === undefined) {
+        continue;
+      }
       params.set(short, String(value));
+      continue;
+    }
+
+    // Enum fields.
+    if (typeof value === "string" && value !== "") {
+      params.set(short, value);
     }
   }
+
   return params.toString();
 }
 
 export function decodeStack(search: string): DraftStack {
   const params = new URLSearchParams(search);
-  const stack: DraftStack = { ...DEFAULT_STACK };
-
-  const archShort = params.get("a") ?? params.get("archetype");
-  if (archShort) {
-    const long =
-      ARCHETYPE_LONG[archShort] ?? (archShort as DraftStack["archetype"]);
-    if (long === "solo-cf-worker" || long === "monorepo-cf") {
-      stack.archetype = long;
-    }
-  }
+  const stack: DraftStack = {
+    ...DEFAULT_STACK,
+    addons: [...DEFAULT_STACK.addons],
+  };
 
   const lookup = (field: keyof DraftStack) => {
     const short = KEY_MAP[field];
     return params.get(short) ?? params.get(field);
   };
 
-  const projectName = lookup("projectName");
-  if (projectName) {
-    stack.projectName = projectName;
+  // Free-text strings.
+  for (const field of STRING_FIELDS) {
+    const raw = lookup(field);
+    if (raw === null || raw === undefined) {
+      continue;
+    }
+    (stack as Record<string, unknown>)[field] = raw;
   }
-  const org = lookup("org");
-  if (org) {
-    stack.org = org;
+
+  // Enums.
+  for (const [field, values] of Object.entries(ENUM_VALUES) as [
+    keyof typeof ENUM_VALUES,
+    readonly string[],
+  ][]) {
+    const raw = lookup(field);
+    if (raw === null || raw === undefined) {
+      continue;
+    }
+    if (values.includes(raw)) {
+      (stack as Record<string, unknown>)[field] = raw;
+    }
   }
-  const domain = lookup("domain");
-  if (domain) {
-    stack.domain = domain;
+
+  // Addons (multi-select).
+  const addonsRaw = lookup("addons");
+  if (addonsRaw !== null && addonsRaw !== undefined) {
+    const requested = addonsRaw.length === 0 ? [] : addonsRaw.split(",");
+    const filtered = requested.filter((v): v is (typeof ADDON_VALUES)[number] =>
+      (ADDON_VALUES as readonly string[]).includes(v)
+    );
+    stack.addons = filtered;
   }
-  const db = lookup("database");
-  if (db === "neon" || db === "turso") {
-    stack.database = db;
-  }
-  const envs = lookup("envs");
-  if (envs === "prd" || envs === "dev+prd" || envs === "dev+stg+prd") {
-    stack.envs = envs;
-  }
-  const trigger = lookup("trigger");
-  if (trigger !== null) {
-    stack.trigger = trigger === "1" || trigger === "true";
-  }
-  const access = lookup("access");
-  if (access !== null) {
-    stack.access = access === "1" || access === "true";
-  }
-  const hookdeck = lookup("hookdeck");
-  if (hookdeck !== null) {
-    stack.hookdeck = hookdeck === "1" || hookdeck === "true";
+
+  // Booleans.
+  for (const field of BOOLEAN_FIELDS) {
+    const raw = lookup(field);
+    if (raw === null || raw === undefined) {
+      continue;
+    }
+    (stack as Record<string, unknown>)[field] =
+      raw === "1" || raw.toLowerCase() === "true";
   }
 
   return stack;

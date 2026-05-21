@@ -13,18 +13,30 @@ import { z } from "zod";
  *   note instead of an input — the value never appears in the URL or the
  *   generated command.
  * - `visibleIf` is a shallow equality predicate against sibling fields
- *   (e.g. `{ hookdeck: true }`).
+ *   (e.g. `{ hookdeck: true }`). When the predicate fails, the field is
+ *   hidden entirely from the flow.
  * - `defaultFrom` is a brace-placeholder template the CLI resolves
  *   server-side (e.g. `"{projectName}.{org.defaultDomain}"`).
+ * - `valueRules` declares per-value compatibility rules: for each enum
+ *   value of THIS field, list required (`dependencies`) or forbidden
+ *   (`incompatibilities`) values on other fields. When a rule fails the
+ *   value is presented as disabled with the rule's `reason`.
  */
+export interface FieldValueRule {
+  dependencies?: Record<string, readonly string[]>;
+  incompatibilities?: Record<string, readonly string[]>;
+  reason?: string;
+}
+
 export interface FieldMeta {
-  ui: "text" | "select" | "toggle" | "secret";
+  ui: "text" | "select" | "toggle" | "secret" | "multiselect";
   label: string;
   description?: string;
   secret?: boolean;
   visibleIf?: Record<string, unknown>;
   defaultFrom?: string;
   source?: "orgsToml" | "doppler" | `env:${string}` | `doppler:${string}`;
+  valueRules?: Record<string, FieldValueRule>;
 }
 
 export const fieldMeta = z.registry<FieldMeta>();

@@ -1,4 +1,0 @@
-name: {{projectName}}-hookdeck
-runtime: nodejs
-description: Hookdeck source/destination/connection for {{projectName}}.
-main: src/index.ts

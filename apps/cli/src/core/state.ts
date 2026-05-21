@@ -13,7 +13,7 @@ export interface StepRecord {
 
 export interface StateProject {
   name: string;
-  archetype: string;
+  presetId: string;
   org: string;
   createdAt: string;
 }
@@ -40,7 +40,7 @@ function emptyState(): State {
     version: 1,
     project: {
       name: "",
-      archetype: "",
+      presetId: "",
       org: "",
       createdAt: new Date().toISOString(),
     },

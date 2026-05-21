@@ -6,6 +6,9 @@ import type { DraftStack } from "./types";
  * fields the preset omits stay as the user had them (so applying a
  * "Solo + Trigger" preset over an existing draft keeps the project
  * name, org, domain the user already typed).
+ *
+ * Slugs mirror the CLI's `apps/cli/presets/*.ts` definitions so the
+ * shareable URL ↔ CLI flag mapping stays 1:1.
  */
 export interface StackPreset {
   id: string;
@@ -18,10 +21,22 @@ export const STACK_PRESETS: readonly StackPreset[] = [
   {
     id: "minimal-solo",
     name: "Minimal Solo",
-    description: "Single CF Worker, Neon, prod-only. No add-ons.",
+    description: "Single CF Worker, Neon Postgres, prod-only. No add-ons.",
     patch: {
-      archetype: "solo-cf-worker",
-      database: "neon",
+      structure: "single",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      api: "orpc",
+      database: "postgres",
+      databaseHost: "neon",
+      orm: "drizzle",
+      auth: "better-auth",
+      storage: "none",
+      payments: "none",
+      addons: [],
       envs: "prd",
       trigger: false,
       access: false,
@@ -31,10 +46,19 @@ export const STACK_PRESETS: readonly StackPreset[] = [
   {
     id: "solo-trigger",
     name: "Solo + Trigger.dev",
-    description: "Solo worker with background jobs + dev/prod split.",
+    description: "Single worker with background jobs + dev/prod split.",
     patch: {
-      archetype: "solo-cf-worker",
-      database: "neon",
+      structure: "single",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      api: "orpc",
+      database: "postgres",
+      databaseHost: "neon",
+      orm: "drizzle",
+      auth: "better-auth",
       envs: "dev+prd",
       trigger: true,
       access: false,
@@ -44,10 +68,19 @@ export const STACK_PRESETS: readonly StackPreset[] = [
   {
     id: "solo-webhooks",
     name: "Solo + Webhooks",
-    description: "Solo worker + Hookdeck inbound webhooks + Trigger.",
+    description: "Single worker + Hookdeck inbound webhooks + Trigger.",
     patch: {
-      archetype: "solo-cf-worker",
-      database: "neon",
+      structure: "single",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      api: "orpc",
+      database: "postgres",
+      databaseHost: "neon",
+      orm: "drizzle",
+      auth: "better-auth",
       envs: "dev+prd",
       trigger: true,
       access: false,
@@ -57,10 +90,19 @@ export const STACK_PRESETS: readonly StackPreset[] = [
   {
     id: "solo-turso-edge",
     name: "Solo Edge (Turso)",
-    description: "Solo worker on Turso for SQLite-at-the-edge.",
+    description: "Single worker on Turso for SQLite-at-the-edge.",
     patch: {
-      archetype: "solo-cf-worker",
-      database: "turso",
+      structure: "single",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      api: "orpc",
+      database: "sqlite",
+      databaseHost: "turso",
+      orm: "drizzle",
+      auth: "better-auth",
       envs: "prd",
       trigger: false,
       access: false,
@@ -70,9 +112,21 @@ export const STACK_PRESETS: readonly StackPreset[] = [
   {
     id: "default-mono",
     name: "Default Monorepo",
-    description: "Bun + Turbo monorepo, Neon, dev/prod, Trigger on.",
+    description: "Bun + Turbo monorepo, Neon Postgres, dev/prod, Trigger on.",
     patch: {
-      archetype: "monorepo-cf",
+      structure: "monorepo",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      docs: "starlight",
+      api: "orpc",
+      database: "postgres",
+      databaseHost: "neon",
+      orm: "drizzle",
+      auth: "better-auth",
+      addons: ["turborepo", "biome"],
       envs: "dev+prd",
       trigger: true,
       access: false,
@@ -84,7 +138,20 @@ export const STACK_PRESETS: readonly StackPreset[] = [
     name: "Full Monorepo",
     description: "Monorepo with three envs, Trigger, Access, Hookdeck.",
     patch: {
-      archetype: "monorepo-cf",
+      structure: "monorepo",
+      cloudProvider: "cloudflare",
+      iac: "pulumi",
+      runtime: "workers",
+      frontend: "tanstack-router",
+      backend: "hono",
+      docs: "starlight",
+      api: "orpc",
+      database: "postgres",
+      databaseHost: "neon",
+      orm: "drizzle",
+      auth: "better-auth",
+      storage: "r2",
+      addons: ["turborepo", "biome", "husky", "commitlint"],
       envs: "dev+stg+prd",
       trigger: true,
       access: true,
@@ -94,16 +161,33 @@ export const STACK_PRESETS: readonly StackPreset[] = [
 ];
 
 /**
- * Build a random stack patch. Picks a coherent combination — turso only
- * pairs with solo-cf-worker, etc.
+ * Build a random stack patch. Picks a coherent combination — turso/sqlite
+ * stay paired, d1 requires cloudflare, etc.
  */
 export function randomStackPatch(): Partial<DraftStack> {
-  const archetype = pick(["solo-cf-worker", "monorepo-cf"] as const);
-  const database =
-    archetype === "solo-cf-worker" ? pick(["neon", "turso"] as const) : "neon";
+  const structure = pick(["single", "monorepo"] as const);
+  const dbCombo = pick([
+    { database: "postgres", databaseHost: "neon" },
+    { database: "sqlite", databaseHost: "turso" },
+    { database: "sqlite", databaseHost: "d1" },
+  ] as const);
+
   return {
-    archetype,
-    database,
+    structure,
+    cloudProvider: "cloudflare",
+    iac: "pulumi",
+    runtime: "workers",
+    frontend: pick(["tanstack-router", "tanstack-start", "astro"] as const),
+    backend: "hono",
+    docs: structure === "monorepo" ? "starlight" : "none",
+    api: "orpc",
+    database: dbCombo.database,
+    databaseHost: dbCombo.databaseHost,
+    orm: "drizzle",
+    auth: "better-auth",
+    storage: pick(["none", "r2"] as const),
+    payments: pick(["none", "stripe"] as const),
+    addons: structure === "monorepo" ? ["turborepo", "biome"] : ["biome"],
     envs: pick(["prd", "dev+prd", "dev+stg+prd"] as const),
     trigger: Math.random() > 0.3,
     access: Math.random() > 0.7,

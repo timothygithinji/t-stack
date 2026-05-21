@@ -1,65 +1,128 @@
 import { existsSync } from "node:fs";
 import * as p from "@clack/prompts";
 import {
-  type Archetype,
   type FieldMeta,
   type InitDecisions,
-  fieldsForArchetype,
   initSchema,
+  validateDecisions,
+  walkFields,
 } from "@t-stack/schema";
 import { defineCommand } from "citty";
 import { execa } from "execa";
 import { isAbsolute, join, resolve } from "pathe";
 import type { z } from "zod";
 import { createOrgsStore } from "../core/orgs.js";
-import type { OrgProfile } from "../core/preset.ts";
+import type { OrgProfile, PresetDef } from "../core/preset.ts";
 import {
   buildCittyArgs,
   defaultResolver,
   kebabName,
-  matchesVisibleIf,
 } from "../core/schema-runtime.js";
 import { loadTokens } from "../core/tokens.js";
 import { discoverZoneViaCfApi, resolveZoneForDomain } from "../core/zones.js";
 import { orgScope as dopplerOrgScope } from "../plugins/doppler.js";
+import { findCliRoot, listPresetIds, loadPreset } from "./_ctx.js";
 import { runDeploy } from "./deploy.js";
 import { runProvision } from "./provision.js";
 import { runScaffold } from "./scaffold.js";
-
-const ARCHETYPES = [
-  "solo-cf-worker",
-  "monorepo-cf",
-] as const satisfies readonly Archetype[];
 
 function bail(msg: string): never {
   p.cancel(msg);
   process.exit(1);
 }
 
+interface SummaryGroup {
+  title: string;
+  rows: [string, string][];
+}
+
+function fmtValue(v: unknown): string {
+  if (v === undefined || v === null || v === "") {
+    return "(unset)";
+  }
+  if (Array.isArray(v)) {
+    return v.length > 0 ? v.join(", ") : "(none)";
+  }
+  if (typeof v === "boolean") {
+    return v ? "yes" : "no";
+  }
+  return String(v);
+}
+
 function renderDecisionsSummary(
   decisions: InitDecisions,
   orgName: string
 ): string {
+  const groups: SummaryGroup[] = [
+    {
+      title: "Project",
+      rows: [
+        ["Name", decisions.projectName],
+        ["Org", orgName],
+        ["Domain", decisions.domain],
+      ],
+    },
+    {
+      title: "Structure & infra",
+      rows: [
+        ["Structure", decisions.structure],
+        ["Cloud", decisions.cloudProvider],
+        ["IaC", decisions.iac],
+      ],
+    },
+    {
+      title: "Runtime & app",
+      rows: [
+        ["Runtime", decisions.runtime],
+        ["Frontend", decisions.frontend],
+        ["Backend", decisions.backend],
+        ["Docs", decisions.docs],
+        ["API", decisions.api],
+      ],
+    },
+    {
+      title: "Data",
+      rows: [
+        ["Database", decisions.database],
+        ["Host", decisions.databaseHost],
+        ["ORM", decisions.orm],
+      ],
+    },
+    {
+      title: "Features",
+      rows: [
+        ["Auth", decisions.auth],
+        ["Storage", decisions.storage],
+        ["Payments", decisions.payments],
+        ["Addons", fmtValue(decisions.addons)],
+      ],
+    },
+    {
+      title: "Tooling",
+      rows: [
+        ["Package manager", decisions.packageManager],
+        ["Git", fmtValue(decisions.git)],
+        ["Install", fmtValue(decisions.install)],
+      ],
+    },
+    {
+      title: "Legacy",
+      rows: [
+        ["Envs", decisions.envs],
+        ["Trigger.dev", fmtValue(decisions.trigger)],
+        ["CF Access", fmtValue(decisions.access)],
+        ["Hookdeck", fmtValue(decisions.hookdeck)],
+      ],
+    },
+  ];
+
   const lines: string[] = [];
-  lines.push(`Project    ${decisions.projectName}`);
-  lines.push(`Archetype  ${decisions.archetype}`);
-  lines.push(`Org        ${orgName}`);
-  lines.push(`Domain     ${decisions.domain}`);
-  if (decisions.archetype === "solo-cf-worker") {
-    lines.push(`Database   ${decisions.database}`);
+  for (const g of groups) {
+    lines.push(g.title);
+    for (const [k, v] of g.rows) {
+      lines.push(`  ${k.padEnd(16)} ${fmtValue(v)}`);
+    }
   }
-  lines.push(`Envs       ${decisions.envs}`);
-  const addons: string[] = [];
-  if (decisions.trigger) {
-    addons.push("trigger");
-  }
-  if (decisions.access) {
-    addons.push("access");
-  }
-  if (decisions.hookdeck) {
-    addons.push("hookdeck");
-  }
-  lines.push(`Add-ons    ${addons.length > 0 ? addons.join(", ") : "(none)"}`);
   return lines.join("\n");
 }
 
@@ -90,6 +153,8 @@ async function pickOrg(initial?: string): Promise<string> {
 export interface RunInitOptions {
   cwd: string;
   yes: boolean;
+  /** Resolved preset bundle (carries the id used for state.json + provision). */
+  preset?: PresetDef;
 }
 
 /**
@@ -115,7 +180,11 @@ export async function runInit(
   }
 
   // 1. Scaffold (files only).
-  const scaffoldResult = await runScaffold({ cwd: projectDir, decisions });
+  const scaffoldResult = await runScaffold({
+    cwd: projectDir,
+    decisions,
+    preset: opts.preset,
+  });
   p.log.success(
     `Scaffolded ${scaffoldResult.filesWritten} files into ${projectDir}`
   );
@@ -123,7 +192,11 @@ export async function runInit(
   // 2. Provision.
   let provisioned = false;
   if (opts.yes) {
-    await runProvision({ cwd: projectDir, decisions });
+    await runProvision({
+      cwd: projectDir,
+      decisions,
+      preset: opts.preset,
+    });
     provisioned = true;
   } else {
     const provNow = await p.confirm({
@@ -134,7 +207,11 @@ export async function runInit(
       bail("Cancelled.");
     }
     if (provNow) {
-      await runProvision({ cwd: projectDir, decisions });
+      await runProvision({
+        cwd: projectDir,
+        decisions,
+        preset: opts.preset,
+      });
       provisioned = true;
     }
   }
@@ -165,8 +242,11 @@ export async function runInit(
       initialValue: false,
     });
     if (!p.isCancel(pushNow) && pushNow) {
-      // Defer to the preset's github plugin by calling provision with --only github.
-      await runProvision({ cwd: projectDir, only: "github" });
+      await runProvision({
+        cwd: projectDir,
+        only: "github",
+        preset: opts.preset,
+      });
     }
   }
 
@@ -190,59 +270,104 @@ export const initCommand = defineCommand({
       const cwd = (args.cwd as string | undefined) ?? process.cwd();
       p.intro("t-stack init");
 
-      // org and archetype are resolved up-front: org because it sources from
-      // a non-zod store (orgs.toml) and seeds the domain default; archetype
-      // because it selects which schema variant to iterate.
+      // Resolve preset BEFORE the prompt loop so its defaults seed `values`.
+      // CLI flags applied during the prompt loop still override these defaults.
+      const cliRoot = findCliRoot();
+      const preset = await pickPreset({
+        presetFlag: args.preset as string | undefined,
+        yes,
+        cliRoot,
+      });
+
+      // Pre-resolve org & projectName up-front: org sources from a non-zod
+      // store (orgs.toml) and seeds the `domain` defaultFrom template;
+      // projectName accepts a positional.
       const orgName = await pickOrg(args.org as string | undefined);
       const orgs = createOrgsStore();
       const orgProfile = await orgs.get(orgName);
       if (!orgProfile) {
         bail(`Org "${orgName}" not found.`);
       }
-      const archetype = await pickArchetype(
-        args.archetype as string | undefined,
-        yes
-      );
 
-      // Schema-driven loop: walk every field declared on the active variant
-      // and resolve via the runtime helper (flag → defaultFrom → schema default
-      // → prompt). Pre-seed `org` / `projectName` so the loop's defaultFrom
-      // templates can reference them.
       const projectNameFlag =
         (args.name as string | undefined) ??
         (args._?.[0] as string | undefined);
+
+      // Seed prompt-loop state with the preset's bundled defaults. CLI flag
+      // overrides are applied per-field inside the loop, so flags still win.
       const values: Record<string, unknown> = {
-        archetype,
+        ...(preset?.defaults ?? {}),
         org: orgName,
-        // `org` object exposed only to defaultFrom templates (not validated by schema).
       };
 
-      for (const field of fieldsForArchetype(archetype)) {
-        if (
-          field.meta.visibleIf &&
-          !matchesVisibleIf(field.meta.visibleIf, values)
-        ) {
-          continue;
+      if (projectNameFlag && projectNameFlag.length > 0) {
+        values.projectName = projectNameFlag;
+      }
+
+      // Predicate-aware loop. Re-walk every iteration so visibility flips
+      // (e.g., docs hidden when structure=single) take effect mid-flow.
+      // Mark preset-supplied defaults as resolved so the loop won't re-prompt
+      // for them (but flag values are still honoured below — see readFlag).
+      const resolved = new Set<string>([
+        "org",
+        ...Object.keys(preset?.defaults ?? {}),
+      ]);
+      // Cap to a safe upper bound — schema has ~25 fields.
+      for (let i = 0; i < 200; i += 1) {
+        const visible = walkFields(values);
+        const next = visible.find((f) => !resolved.has(f.name));
+        if (!next) {
+          break;
         }
-        // Pre-resolved fields skip the prompt loop.
-        if (field.name === "org") {
-          continue;
-        }
-        const flagValue = readFlag(field, args, projectNameFlag);
-        values[field.name] = await resolveField({
-          field,
+        const flagValue = readFlag(next, args, projectNameFlag);
+        values[next.name] = await resolveField({
+          field: next,
           flagValue,
           orgProfile,
           orgName,
           yes,
           values,
         });
+        resolved.add(next.name);
+      }
+
+      // Apply flag overrides for any preset-default field (so --frontend=astro
+      // still wins even when the preset preloaded a different frontend).
+      if (preset) {
+        const argsBag = args as Record<string, unknown>;
+        for (const fieldName of Object.keys(preset.defaults)) {
+          const flag = argsBag[kebabName(fieldName)];
+          if (flag === undefined || flag === null || flag === "") {
+            continue;
+          }
+          if (fieldName === "addons" && typeof flag === "string") {
+            const csv = flag;
+            values[fieldName] =
+              csv.length > 0
+                ? csv
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                : [];
+          } else {
+            values[fieldName] = flag;
+          }
+        }
       }
 
       const domain = String(values.domain ?? "");
       await ensureZoneForDomain(orgProfile, domain, yes);
 
       const decisions = initSchema.parse(values);
+
+      const violations = validateDecisions(initSchema, decisions);
+      if (violations.length > 0) {
+        const msg = violations
+          .map((v) => `  • ${v.field}=${String(v.value)}: ${v.conflict}`)
+          .join("\n");
+        bail(`Decision conflicts detected:\n${msg}`);
+      }
+
       if (!yes) {
         p.note(renderDecisionsSummary(decisions, orgName), "Review");
         const proceed = await p.confirm({
@@ -253,7 +378,7 @@ export const initCommand = defineCommand({
           bail("Cancelled.");
         }
       }
-      await runInit(decisions, { cwd, yes });
+      await runInit(decisions, { cwd, yes, preset: preset ?? undefined });
     } catch (err) {
       p.log.info("Hint: t-stack doctor — verify token health and try again");
       p.cancel(`init failed: ${(err as Error).message}`);
@@ -261,6 +386,62 @@ export const initCommand = defineCommand({
     }
   },
 });
+
+interface PickPresetArgs {
+  presetFlag: string | undefined;
+  yes: boolean;
+  cliRoot: string;
+}
+
+/**
+ * Resolve the preset bundle for this run. Honour `--preset` if supplied;
+ * default to `solo-cf-worker` in `--yes` mode; otherwise prompt the user.
+ *
+ * Returns `null` when the user explicitly picks "custom" — the prompt loop
+ * then runs without any preloaded defaults.
+ */
+async function pickPreset(args: PickPresetArgs): Promise<PresetDef | null> {
+  const available = await listPresetIds(args.cliRoot);
+
+  if (args.presetFlag) {
+    if (!available.includes(args.presetFlag)) {
+      bail(
+        `Unknown preset "${args.presetFlag}". Available: ${
+          available.length > 0 ? available.join(", ") : "(none)"
+        }`
+      );
+    }
+    return await loadPreset(args.presetFlag, args.cliRoot);
+  }
+
+  if (args.yes) {
+    return await loadPreset("solo-cf-worker", args.cliRoot);
+  }
+
+  const presets = await Promise.all(
+    available.map(async (id) => await loadPreset(id, args.cliRoot))
+  );
+  const choice = await p.select({
+    message: "Pick a preset",
+    options: [
+      ...presets.map((preset) => ({
+        value: preset.id,
+        label: `${preset.name} — ${preset.description}`,
+      })),
+      {
+        value: "custom",
+        label: "custom — no preset, prompt for every field",
+      },
+    ],
+  });
+  if (p.isCancel(choice)) {
+    bail("Cancelled.");
+  }
+  if (choice === "custom") {
+    return null;
+  }
+  return await loadPreset(choice as string, args.cliRoot);
+}
 
 interface ResolveFieldArgs {
   field: { name: string; schema: z.ZodTypeAny; meta: FieldMeta };
@@ -297,45 +478,27 @@ async function resolveField(args: ResolveFieldArgs): Promise<unknown> {
 }
 
 function readFlag(
-  field: { name: string },
+  field: { name: string; meta: FieldMeta },
   args: Record<string, unknown>,
   projectNameFlag: string | undefined
 ): unknown {
   if (field.name === "projectName") {
     return projectNameFlag;
   }
-  return args[kebabName(field.name)];
-}
-
-const ARCHETYPE_LABELS: Record<Archetype, string> = {
-  "solo-cf-worker": "solo-cf-worker — single Cloudflare Worker",
-  "monorepo-cf": "monorepo-cf — Turborepo with Worker + web",
-};
-
-async function pickArchetype(
-  flagValue: string | undefined,
-  yes: boolean
-): Promise<Archetype> {
-  if (flagValue) {
-    if (!ARCHETYPES.includes(flagValue as Archetype)) {
-      bail(
-        `Invalid archetype "${flagValue}". Expected one of: ${ARCHETYPES.join(", ")}`
-      );
-    }
-    return flagValue as Archetype;
+  const flag = args[kebabName(field.name)];
+  if (flag === undefined) {
+    return;
   }
-  if (yes) {
-    return "solo-cf-worker";
+  if (field.meta.ui === "multiselect" && typeof flag === "string") {
+    // Allow `--addons biome,husky` as a CSV shortcut.
+    return flag.length > 0
+      ? flag
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
   }
-  const v = await p.select({
-    message: "Pick an archetype",
-    options: ARCHETYPES.map((a) => ({ value: a, label: ARCHETYPE_LABELS[a] })),
-    initialValue: "solo-cf-worker",
-  });
-  if (p.isCancel(v)) {
-    bail("Cancelled.");
-  }
-  return v as Archetype;
+  return flag;
 }
 
 function apexFor(domain: string): string {

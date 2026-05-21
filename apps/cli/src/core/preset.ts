@@ -1,14 +1,9 @@
-import type { Archetype, InitDecisions } from "@t-stack/schema";
+import type { InitDecisions } from "@t-stack/schema";
 import type { Logger } from "./log.ts";
 import type { StateStore } from "./state.ts";
 import type { TokenBag } from "./tokens.ts";
 
-export type {
-  Archetype,
-  Database,
-  EnvScope,
-  InitDecisions,
-} from "@t-stack/schema";
+export type { EnvScope, InitDecisions } from "@t-stack/schema";
 
 export interface OrgProfile {
   name: string;
@@ -41,7 +36,8 @@ export interface Paths {
 export interface Ctx {
   org: OrgProfile;
   projectName: string;
-  archetype: Archetype;
+  /** The preset bundle in effect for this run (resolved by init / loaded from state). */
+  preset: PresetDef;
   decisions: InitDecisions;
   paths: Paths;
   logger: Logger;
@@ -55,8 +51,17 @@ export interface Ctx {
 
 export interface PresetDef {
   id: string;
+  /** Human-friendly label (e.g., "Solo CF Worker"). */
+  name: string;
   description: string;
+  /**
+   * Preloaded values that bypass schema defaults. Merged into the prompt-loop
+   * initial state before any user input or CLI flag is applied, so flags still
+   * win when they conflict.
+   */
+  defaults: Partial<InitDecisions>;
   templates: readonly string[];
+  /** Phase 5 will rewrite this to be declarative. */
   run: (ctx: Ctx) => Promise<void>;
 }
 

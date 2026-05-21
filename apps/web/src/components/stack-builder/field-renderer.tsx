@@ -1,5 +1,19 @@
+import {
+  evaluateField,
+  fieldMeta,
+  initSchema,
+  isFieldVisible,
+  type ValueAvailability,
+} from "@t-stack/schema";
 import { Terminal } from "lucide-react";
-import { CATEGORIES, type CategoryDef } from "@/lib/stack-builder/categories";
+import { useMemo } from "react";
+import {
+  CATEGORIES,
+  type CategoryDef,
+  type GroupedField,
+  type SelectOption,
+} from "@/lib/stack-builder/categories";
+import { enumChoicesForField } from "@/lib/stack-builder/schema-helpers";
 import type { DraftStack } from "@/lib/stack-builder/types";
 import { cn } from "@/lib/utils";
 import { OptionCard } from "./option-card";
@@ -12,9 +26,15 @@ interface FieldRendererProps {
 
 /**
  * Render the schema-driven form as visual selection cards organised into
- * categories (Archetype, Database, Environments, Add-ons). Free-text fields
- * sit in the top "Project" section as inputs. Hidden sections (e.g. Database
- * when archetype=monorepo-cf) drop out via visibleIf.
+ * categories. Field visibility (`docs` only when `structure=monorepo`,
+ * `hookdeckApiKey` only when `hookdeck=true`) is read straight from each
+ * field's registered `visibleIf` predicate, so adding a new conditional
+ * field in the schema needs zero changes here.
+ *
+ * Per-value compat (e.g. "D1 requires Cloudflare + sqlite") is evaluated
+ * via `evaluateField` from the schema. Disabled options stay clickable in
+ * the DOM (for focus order) but render with reduced opacity and a tooltip
+ * containing the reason.
  */
 export function FieldRenderer({
   stack,
@@ -24,7 +44,7 @@ export function FieldRenderer({
   return (
     <div>
       {CATEGORIES.map((category) => {
-        if (!shouldShow(category, stack)) {
+        if (!shouldShowCategory(category, stack)) {
           return null;
         }
         return (
@@ -41,7 +61,7 @@ export function FieldRenderer({
   );
 }
 
-function shouldShow(category: CategoryDef, stack: DraftStack): boolean {
+function shouldShowCategory(category: CategoryDef, stack: DraftStack): boolean {
   if (!category.visibleIf) {
     return true;
   }
@@ -85,31 +105,34 @@ function CategorySection({
         </div>
       ) : null}
 
-      {category.variant === "single" && category.options ? (
-        <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-2">
-          {category.options.map((opt) => (
-            <OptionCard
-              description={opt.description}
-              disabled={isDisabled(category, opt.value, stack)}
-              disabledReason={disabledReason(category, opt.value, stack)}
-              icon={opt.icon}
-              key={opt.value}
-              label={opt.label}
-              onClick={() => {
-                if (!category.field) {
-                  return;
-                }
-                setStack({
-                  [category.field]: opt.value,
-                } as unknown as Partial<DraftStack>);
-              }}
-              selected={
-                category.field
-                  ? (stack as unknown as Record<string, unknown>)[
-                      category.field
-                    ] === opt.value
-                  : false
-              }
+      {category.variant === "single" && category.field && category.options ? (
+        <SingleSelectGrid
+          field={category.field}
+          options={category.options}
+          setStack={setStack}
+          stack={stack}
+        />
+      ) : null}
+
+      {category.variant === "multiselect" &&
+      category.field &&
+      category.options ? (
+        <MultiSelectGrid
+          field={category.field}
+          options={category.options}
+          setStack={setStack}
+          stack={stack}
+        />
+      ) : null}
+
+      {category.variant === "grouped" && category.fields ? (
+        <div className="flex flex-col gap-4 px-5 py-4">
+          {category.fields.map((group) => (
+            <GroupedSubSection
+              group={group}
+              key={group.field}
+              setStack={setStack}
+              stack={stack}
             />
           ))}
         </div>
@@ -142,33 +165,182 @@ function CategorySection({
   );
 }
 
-function isDisabled(
-  category: CategoryDef,
-  value: string,
+/**
+ * Look up per-value availability for a given field name. Falls back to
+ * "everything enabled" when the field isn't registered (free-text fields,
+ * or the multi-select `addons` array — both still flow through this for
+ * consistency).
+ */
+function useFieldAvailability(
+  fieldName: string,
   stack: DraftStack
-): boolean {
-  // Turso requires the solo-cf-worker archetype. We hide the Database
-  // section entirely on monorepo-cf via visibleIf, but the guard stays as
-  // a belt-and-braces measure in case the URL ever forces an invalid combo.
-  if (
-    category.key === "database" &&
-    value === "turso" &&
-    stack.archetype !== "solo-cf-worker"
-  ) {
-    return true;
-  }
-  return false;
+): {
+  visible: boolean;
+  availability: Map<string, ValueAvailability>;
+} {
+  return useMemo(() => {
+    const schema = (initSchema.shape as Record<string, unknown>)[fieldName];
+    if (!schema) {
+      return { visible: true, availability: new Map() };
+    }
+    const meta = fieldMeta.get(schema as never);
+    if (!meta) {
+      return { visible: true, availability: new Map() };
+    }
+    const visible = isFieldVisible(meta, stack);
+    const enumValues = enumChoicesForField(schema as never) ?? [];
+    const items = evaluateField(meta, enumValues, stack);
+    return {
+      visible,
+      availability: new Map(items.map((item) => [item.value, item])),
+    };
+  }, [fieldName, stack]);
 }
 
-function disabledReason(
-  category: CategoryDef,
-  value: string,
-  stack: DraftStack
-): string | undefined {
-  if (isDisabled(category, value, stack)) {
-    return "Turso is only supported with the solo-cf-worker archetype.";
+interface SingleSelectGridProps {
+  field: string;
+  options: SelectOption[];
+  stack: DraftStack;
+  setStack: (patch: Partial<DraftStack>) => void;
+}
+
+function SingleSelectGrid({
+  field,
+  options,
+  stack,
+  setStack,
+}: SingleSelectGridProps) {
+  const { visible, availability } = useFieldAvailability(field, stack);
+  if (!visible) {
+    return null;
   }
-  return;
+  return (
+    <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-2">
+      {options.map((opt) => {
+        const status = availability.get(opt.value);
+        const disabled = status ? !status.enabled : false;
+        return (
+          <OptionCard
+            description={opt.description}
+            disabled={disabled}
+            disabledReason={disabled ? status?.reason : undefined}
+            icon={opt.icon}
+            key={opt.value}
+            label={opt.label}
+            onClick={() => {
+              if (disabled) {
+                return;
+              }
+              setStack({
+                [field]: opt.value,
+              } as unknown as Partial<DraftStack>);
+            }}
+            selected={
+              (stack as unknown as Record<string, unknown>)[field] === opt.value
+            }
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+interface GroupedSubSectionProps {
+  group: GroupedField;
+  stack: DraftStack;
+  setStack: (patch: Partial<DraftStack>) => void;
+}
+
+function GroupedSubSection({ group, stack, setStack }: GroupedSubSectionProps) {
+  const { visible, availability } = useFieldAvailability(group.field, stack);
+  if (!visible) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="block font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+        {group.title}
+      </span>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {group.options.map((opt) => {
+          const status = availability.get(opt.value);
+          const disabled = status ? !status.enabled : false;
+          return (
+            <OptionCard
+              description={opt.description}
+              disabled={disabled}
+              disabledReason={disabled ? status?.reason : undefined}
+              icon={opt.icon}
+              key={opt.value}
+              label={opt.label}
+              onClick={() => {
+                if (disabled) {
+                  return;
+                }
+                setStack({
+                  [group.field]: opt.value,
+                } as unknown as Partial<DraftStack>);
+              }}
+              selected={
+                (stack as unknown as Record<string, unknown>)[group.field] ===
+                opt.value
+              }
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface MultiSelectGridProps {
+  field: string;
+  options: SelectOption[];
+  stack: DraftStack;
+  setStack: (patch: Partial<DraftStack>) => void;
+}
+
+function MultiSelectGrid({
+  field,
+  options,
+  stack,
+  setStack,
+}: MultiSelectGridProps) {
+  const { visible, availability } = useFieldAvailability(field, stack);
+  if (!visible) {
+    return null;
+  }
+  const current = ((stack as unknown as Record<string, unknown>)[field] ??
+    []) as string[];
+  return (
+    <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-2">
+      {options.map((opt) => {
+        const status = availability.get(opt.value);
+        const disabled = status ? !status.enabled : false;
+        const selected = current.includes(opt.value);
+        return (
+          <OptionCard
+            description={opt.description}
+            disabled={disabled}
+            disabledReason={disabled ? status?.reason : undefined}
+            icon={opt.icon}
+            key={opt.value}
+            label={opt.label}
+            onClick={() => {
+              if (disabled) {
+                return;
+              }
+              const next = selected
+                ? current.filter((v) => v !== opt.value)
+                : [...current, opt.value];
+              setStack({ [field]: next } as unknown as Partial<DraftStack>);
+            }}
+            selected={selected}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 interface ProjectInputsProps {

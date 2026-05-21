@@ -31,12 +31,40 @@ export const PLACEHOLDERS = {
 } as const;
 
 /**
+ * Map the flat axis set back to the legacy preset slug used as a template
+ * directory name (and the Handlebars `archetype` var). The CLI's preset
+ * registry is the source of truth — we mirror its `single`/`monorepo`
+ * branch here. Other combinations fall back to `solo-cf-worker` so the
+ * preview still renders something useful.
+ */
+function presetIdFor(stack: DraftStack): "solo-cf-worker" | "monorepo-cf" {
+  return stack.structure === "monorepo" ? "monorepo-cf" : "solo-cf-worker";
+}
+
+/**
+ * Map databaseHost back to the legacy template var (`neon` | `turso` |
+ * `none`). Templates still consume `database` as a slug; the CLI does the
+ * same in `deriveVars()` until templates migrate to read `databaseHost`
+ * directly.
+ */
+function templateDatabaseSlug(stack: DraftStack): "neon" | "turso" | "none" {
+  if (stack.databaseHost === "neon") {
+    return "neon";
+  }
+  if (stack.databaseHost === "turso") {
+    return "turso";
+  }
+  return "none";
+}
+
+/**
  * Stitch a Handlebars context from the user's draft + synthetic placeholders.
  * Mirrors deriveVars() in apps/cli/src/commands/scaffold.ts but with web-safe
  * defaults instead of org/zone lookups.
  */
 export function buildVars(stack: DraftStack): Record<string, unknown> {
-  const database = stack.archetype === "monorepo-cf" ? "neon" : stack.database;
+  const presetId = presetIdFor(stack);
+  const databaseSlug = templateDatabaseSlug(stack);
   return {
     org: {
       name: stack.org || "your-org",
@@ -51,37 +79,88 @@ export function buildVars(stack: DraftStack): Record<string, unknown> {
     },
     orgName: stack.org || "your-org",
     projectName: stack.projectName || "my-app",
-    archetype: stack.archetype,
+    archetype: presetId,
     domain: stack.domain || `${stack.projectName || "my-app"}.example.com`,
-    database,
+    database: databaseSlug,
     envs: stack.envs,
     trigger: stack.trigger,
     access: stack.access,
     hookdeck: stack.hookdeck,
-    neon: database === "neon",
-    turso: database === "turso",
+    neon: databaseSlug === "neon",
+    turso: databaseSlug === "turso",
     cloudflareZoneId: PLACEHOLDERS.cloudflareZoneId,
     cloudflareZoneApex: PLACEHOLDERS.cloudflareZoneApex,
     createdAt: "1970-01-01T00:00:00.000Z",
+    // Expose the full decisions under `d` so fragment templates can branch
+    // on sibling axis state (e.g., {{#if (eq d.structure "monorepo")}}).
+    d: stack,
   };
 }
 
 /**
  * Render the full project for the given stack: `_base/` overlaid with the
- * archetype directory, plus the optional `_assets/hookdeck-sdk/` copy.
+ * preset directory, then per-axis fragments, then the optional
+ * `_assets/hookdeck-sdk/` copy.
  */
 export function renderProject(stack: DraftStack) {
   const vars = buildVars(stack);
+  const presetId = presetIdFor(stack);
   const base = renderInMemory(FILES, "_base/", vars);
-  const archetypeDir = `${stack.archetype}/`;
-  const archetypeLayer = renderInMemory(FILES, archetypeDir, vars);
+  const presetLayer = renderInMemory(FILES, `${presetId}/`, vars);
 
-  const layers = [archetypeLayer];
+  const layers = [presetLayer];
+
+  // Per-axis fragments mirror the CLI's `renderFragments` in scaffold.ts.
+  // Skip "none" / falsy values — those represent "don't add anything".
+  const fragmentPairs: [string, string][] = [
+    ["structure", stack.structure],
+    ["cloudProvider", stack.cloudProvider],
+    ["iac", stack.iac],
+    ["runtime", stack.runtime],
+    ["frontend", stack.frontend],
+    ["backend", stack.backend],
+    ["docs", stack.docs],
+    ["api", stack.api],
+    ["database", stack.database],
+    ["databaseHost", stack.databaseHost],
+    ["orm", stack.orm],
+    ["auth", stack.auth],
+    ["storage", stack.storage],
+    ["payments", stack.payments],
+    ["packageManager", stack.packageManager],
+    ["envs", stack.envs],
+    ["trigger", String(stack.trigger)],
+    ["access", String(stack.access)],
+    ["hookdeck", String(stack.hookdeck)],
+    ["git", String(stack.git)],
+    ["install", String(stack.install)],
+  ];
+
+  for (const [axis, value] of fragmentPairs) {
+    if (!value || value === "none" || value === "false") {
+      continue;
+    }
+    const layer = renderInMemory(FILES, `fragments/${axis}/${value}/`, vars);
+    if (layer.length > 0) {
+      layers.push(layer);
+    }
+  }
+
+  for (const addon of stack.addons ?? []) {
+    const layer = renderInMemory(FILES, `fragments/addons/${addon}/`, vars);
+    if (layer.length > 0) {
+      layers.push(layer);
+    }
+  }
 
   if (stack.hookdeck) {
     // hookdeck-sdk is copied verbatim (no handlebars) into
     // infra/hookdeck/sdks/hookdeck/ — match the CLI behaviour.
-    const sdkLayer: typeof archetypeLayer = [];
+    const sdkLayer: Array<{
+      path: string;
+      sourcePath: string;
+      content: string;
+    }> = [];
     const prefix = "_assets/hookdeck-sdk/";
     for (const f of FILES) {
       if (!f.path.startsWith(prefix)) {
