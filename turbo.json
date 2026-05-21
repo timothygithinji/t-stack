@@ -3,18 +3,30 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".output/**", ".vinxi/**"],
+      "outputs": [
+        "dist/**",
+        ".output/**",
+        ".vinxi/**",
+        "files/**",
+        "src/lib/generated/**",
+        "templates/**"
+      ],
       "inputs": [
         "src/**",
+        "scripts/**",
         "presets/**",
-        "templates/**",
+        "files/**",
         "package.json",
-        "tsconfig.json"
+        "tsconfig.json",
+        "vite.config.ts",
+        "wrangler.jsonc",
+        "components.json"
       ]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["^build"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
@@ -27,12 +39,28 @@
         "src/**",
         "test/**",
         "presets/**",
-        "templates/**",
+        "files/**",
         "vitest.config.ts"
       ]
     },
     "lint": {
       "outputs": []
+    },
+    "@t-stack/templates#build": {
+      "outputs": [],
+      "inputs": ["files/**"]
+    },
+    "@t-stack/schema#build": {
+      "outputs": [],
+      "inputs": ["src/**"]
+    },
+    "@t-stack/presets#build": {
+      "outputs": [],
+      "inputs": ["src/**"]
+    },
+    "@t-stack/templating#build": {
+      "outputs": [],
+      "inputs": ["src/**"]
     }
   }
 }
