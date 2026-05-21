@@ -1,14 +1,13 @@
 {
-  "name": "t-stack-monorepo",
+  "name": "t-stack",
   "private": true,
-  "type": "module",
-  "packageManager": "bun@1.3.0",
   "license": "MIT",
   "author": "Timothy Githinji",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/timothygithinji/t-stack.git"
   },
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -31,6 +30,7 @@
     "node": ">=20",
     "bun": ">=1.1"
   },
+  "packageManager": "bun@1.3.0",
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@commitlint/cli": "21.0.1",

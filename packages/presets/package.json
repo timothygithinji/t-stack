@@ -9,8 +9,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "echo 'no build (source-only package)'"
+    "build": "echo 'no build (source-only package)'",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "6.0.3"
