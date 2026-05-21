@@ -19,8 +19,13 @@ preview panel matches whatever the CLI would scaffold.
 
 ## Deploy
 
-Pushes to `main` that touch `apps/web/**` or `packages/**` trigger
-`.github/workflows/web-deploy.yml`, which runs:
+`.github/workflows/web-deploy.yml` chains off the Release workflow via
+`workflow_run`: it fires after every successful `Release` run on `main`
+and checks out the exact commit that was released, so the live site
+stays in lockstep with the published CLI. Manual `workflow_dispatch`
+is the escape hatch when you need to redeploy without a release.
+
+The job runs:
 
 ```bash
 bun --filter @t-stack/web build
