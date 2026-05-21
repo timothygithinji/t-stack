@@ -1,14 +1,15 @@
 name: Deploy web
 
+# Web deploy chains off the Release workflow so the live site only
+# updates when the CLI releases. workflow_run uses the default
+# GITHUB_TOKEN and survives GitHub's no-recursive-trigger rule —
+# unlike `on: release` which is blocked when the release is created
+# by another Actions job.
 on:
-  push:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "apps/web/**"
-      - "packages/**"
-      - "package.json"
-      - "bun.lock"
-      - ".github/workflows/web-deploy.yml"
   workflow_dispatch:
     inputs:
       reason:
@@ -23,19 +24,35 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # workflow_run fires on completion regardless of conclusion — gate
+    # on `success`. Manual dispatch always runs.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: read
     steps:
-      - name: Log manual trigger
-        if: github.event_name == 'workflow_dispatch'
+      - name: Log trigger
         env:
+          EVENT: ${{ github.event_name }}
           REASON: ${{ github.event.inputs.reason }}
           ACTOR: ${{ github.actor }}
+          UPSTREAM: ${{ github.event.workflow_run.head_sha }}
         run: |
-          echo "Manual deploy triggered by $ACTOR"
-          [ -n "$REASON" ] && echo "Reason: $REASON" || true
+          echo "Trigger: $EVENT"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "Manual deploy triggered by $ACTOR"
+            [ -n "$REASON" ] && echo "Reason: $REASON" || true
+          else
+            echo "Chained off Release workflow at commit $UPSTREAM"
+          fi
 
       - uses: actions/checkout@v4
+        # workflow_run events default to the workflow file's branch (main),
+        # but we want the exact commit Release ran against to keep the
+        # deployed bundle in lockstep with the published CLI.
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -56,10 +73,16 @@ jobs:
 
       - name: Summary
         if: success()
+        env:
+          UPSTREAM: ${{ github.event.workflow_run.head_sha }}
         run: |
           {
             echo "## Web deploy"
             echo ""
             echo "- Live at https://t-stack.timothygithinji.com"
-            echo "- Commit \`${GITHUB_SHA::7}\`"
+            if [ -n "$UPSTREAM" ]; then
+              echo "- Released commit \`${UPSTREAM::7}\`"
+            else
+              echo "- Manual deploy of \`${GITHUB_SHA::7}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
