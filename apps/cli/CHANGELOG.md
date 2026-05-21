@@ -2,6 +2,17 @@
 
 
 
+## [0.3.4](https://github.com/timothygithinji/t-stack/compare/v0.3.3...v0.3.4) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** use correct Trigger.dev REST endpoints for project create + prod key ([c36d90e](https://github.com/timothygithinji/t-stack/commit/c36d90ebbfcdec0dcd6307d091cf6dd37798bc6b))
+* **schema:** allow tanstack-start backend on Workers, gate on matching frontend ([a08a17f](https://github.com/timothygithinji/t-stack/commit/a08a17fa176125b3b419e9b5a267ca0a45f1bbb3))
+
+### Maintenance
+
+* rename presets to single-cloudflare / monorepo-cloudflare ([b223c0f](https://github.com/timothygithinji/t-stack/commit/b223c0f0819fa749be383550a4d4bcce206fee13))
+
 ## [0.3.3](https://github.com/timothygithinji/t-stack/compare/v0.3.2...v0.3.3) (2026-05-21)
 
 ### Bug Fixes
