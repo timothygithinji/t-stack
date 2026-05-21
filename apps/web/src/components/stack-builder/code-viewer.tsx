@@ -52,7 +52,7 @@ export function CodeViewer({ file }: CodeViewerProps) {
           {file.sourcePath !== file.path ? "rendered" : "verbatim"}
         </span>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto bg-[#0d1117]">
+      <div className="min-h-0 flex-1 overflow-auto bg-[#0d1117] pt-3">
         {lines ? (
           <pre className="font-mono text-xs leading-relaxed">
             <code>
