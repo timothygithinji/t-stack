@@ -2,6 +2,12 @@
 
 
 
+## [0.3.7](https://github.com/timothygithinji/t-stack/compare/v0.3.6...v0.3.7) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** make neon.create idempotent and bootstrap Pulumi deps on demand ([365b97c](https://github.com/timothygithinji/t-stack/commit/365b97c94cbbcbd90060da28eaf914eb1313ad3a))
+
 ## [0.3.6](https://github.com/timothygithinji/t-stack/compare/v0.3.5...v0.3.6) (2026-05-21)
 
 ### Bug Fixes
