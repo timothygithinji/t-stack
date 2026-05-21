@@ -1,10 +1,12 @@
-name: Deploy web
+name: Deploy
 
-# Web deploy chains off the Release workflow so the live site only
-# updates when the CLI releases. workflow_run uses the default
-# GITHUB_TOKEN and survives GitHub's no-recursive-trigger rule —
-# unlike `on: release` which is blocked when the release is created
-# by another Actions job.
+# Deploy chains off the Release workflow so the live site only updates
+# when the CLI releases. workflow_run uses the default GITHUB_TOKEN and
+# survives GitHub's no-recursive-trigger rule — unlike `on: release`
+# which is blocked when the release is created by another Actions job.
+#
+# Add new jobs here (e.g. docs deploy, infra apply) rather than spinning
+# up additional workflow files.
 on:
   workflow_run:
     workflows: ["Release"]
@@ -12,17 +14,24 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      target:
+        description: "Which app to deploy (default: web)"
+        required: false
+        default: web
+        type: choice
+        options: [web]
       reason:
         description: "Reason for manual deploy"
         required: false
         type: string
 
 concurrency:
-  group: web-deploy
+  group: deploy
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  web:
+    name: Deploy web
     runs-on: ubuntu-latest
     # workflow_run fires on completion regardless of conclusion — gate
     # on `success`. Manual dispatch always runs.
@@ -48,7 +57,7 @@ jobs:
           fi
 
       - uses: actions/checkout@v4
-        # workflow_run events default to the workflow file's branch (main),
+        # workflow_run defaults to the workflow file's branch (main),
         # but we want the exact commit Release ran against to keep the
         # deployed bundle in lockstep with the published CLI.
         with:
@@ -64,12 +73,18 @@ jobs:
       - name: Build apps/web
         run: bun --filter @t-stack/web build
 
+      # Cloudflare credentials live in the Doppler `t-stack/prd` config
+      # (same secrets the CLI reads via loadTokens). DOPPLER_TOKEN is the
+      # only GitHub Actions secret we maintain — everything else flows
+      # through Doppler so org-level rotations are one-and-done.
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
       - name: Deploy to Cloudflare Workers
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         working-directory: apps/web
-        run: bunx wrangler deploy
+        run: doppler run -- bunx wrangler deploy
 
       - name: Summary
         if: success()
