@@ -36,12 +36,12 @@ export function StackBuilder() {
   return (
     <div className="grid h-[calc(100vh-3.25rem)] grid-cols-1 overflow-hidden sm:grid-cols-[34rem_minmax(0,1fr)]">
       <aside className="flex min-h-0 flex-col overflow-y-auto border-[var(--color-border)] border-r">
-        <div className="space-y-6 p-5">
-          <FieldRenderer
-            projectNameError={projectNameError}
-            setStack={setStack}
-            stack={stack}
-          />
+        <FieldRenderer
+          projectNameError={projectNameError}
+          setStack={setStack}
+          stack={stack}
+        />
+        <div className="border-[var(--color-border)] border-t px-5 py-3">
           <button
             className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide hover:text-[var(--color-foreground)]"
             onClick={resetStack}
@@ -53,7 +53,7 @@ export function StackBuilder() {
       </aside>
 
       <main className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-[var(--color-border)] border-b px-5 py-3">
+        <div className="flex h-12 shrink-0 items-center justify-between border-[var(--color-border)] border-b px-5">
           <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
             Output
           </h2>
