@@ -2,6 +2,12 @@
 
 
 
+## [0.4.1](https://github.com/timothygithinji/t-stack/compare/v0.4.0...v0.4.1) (2026-05-21)
+
+### Bug Fixes
+
+* **templating:** preserve GitHub Actions expressions ([248751d](https://github.com/timothygithinji/t-stack/commit/248751d3126604a436affdbcf8bf4094d4b7f94e))
+
 ## [0.4.0](https://github.com/timothygithinji/t-stack/compare/v0.3.7...v0.4.0) (2026-05-21)
 
 ### Features
