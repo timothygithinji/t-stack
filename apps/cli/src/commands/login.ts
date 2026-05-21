@@ -13,7 +13,7 @@ const META_PROJECT_SLUG = "t-stack";
 const META_CONFIG = "prd";
 
 function bail(msg: string): never {
-  p.log.error(msg);
+  p.cancel(msg);
   process.exit(1);
 }
 
@@ -223,7 +223,7 @@ export const loginCommand = defineCommand({
         "Login complete. Run `t-stack init <name>` to scaffold a project."
       );
     } catch (err) {
-      p.log.error(`login failed: ${(err as Error).message}`);
+      p.cancel(`login failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },

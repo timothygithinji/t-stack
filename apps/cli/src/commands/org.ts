@@ -7,7 +7,7 @@ import { discoverZoneViaCfApi } from "../core/zones.js";
 import { listOrgs as listTriggerOrgs } from "../plugins/trigger.js";
 
 function bail(msg: string): never {
-  p.log.error(msg);
+  p.cancel(msg);
   process.exit(1);
 }
 
@@ -89,8 +89,9 @@ const addSub = defineCommand({
     },
   },
   async run({ args }) {
+    const name = args.name as string;
+    p.intro(`t-stack org add · ${name}`);
     try {
-      const name = args.name as string;
       const cloudflareZones = parseCfZoneFlag(
         args["cf-zone"] as string | string[] | undefined
       );
@@ -123,9 +124,9 @@ const addSub = defineCommand({
       }
 
       await createOrgsStore().add(profile);
-      p.log.success(`Added org "${name}".`);
+      p.outro(`Added org "${name}"`);
     } catch (err) {
-      p.log.error(`org add failed: ${(err as Error).message}`);
+      p.cancel(`org add failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -135,13 +136,15 @@ const listSub = defineCommand({
   meta: { name: "list", description: "List configured orgs." },
   async run() {
     const orgs = await createOrgsStore().list();
+    p.intro("t-stack org list");
     if (orgs.length === 0) {
-      p.log.info("No orgs configured. Add one with `t-stack org add <name>`.");
+      p.outro("No orgs configured. Add one with `t-stack org add <name>`.");
       return;
     }
     for (const o of orgs) {
       p.log.info(`${o.name} — ${o.defaultDomain}`);
     }
+    p.outro(`${orgs.length} org${orgs.length === 1 ? "" : "s"}`);
   },
 });
 
@@ -149,11 +152,13 @@ const showSub = defineCommand({
   meta: { name: "show", description: "Print one org profile." },
   args: { name: { type: "positional", required: true } },
   async run({ args }) {
+    p.intro(`t-stack org show · ${args.name}`);
     const org = await createOrgsStore().get(args.name as string);
     if (!org) {
       bail(`Org "${args.name}" not found.`);
     }
     p.log.info(JSON.stringify(org, null, 2));
+    p.outro(args.name as string);
   },
 });
 
@@ -162,16 +167,17 @@ const removeSub = defineCommand({
   args: { name: { type: "positional", required: true } },
   async run({ args }) {
     const name = args.name as string;
+    p.intro(`t-stack org remove · ${name}`);
     const confirm = await p.confirm({
       message: `Remove org "${name}" from orgs.toml? (Cloud resources are not touched.)`,
       initialValue: false,
     });
     if (p.isCancel(confirm) || !confirm) {
-      p.log.info("Aborted.");
+      p.cancel("Aborted.");
       return;
     }
     await createOrgsStore().remove(name);
-    p.log.success(`Removed org "${name}".`);
+    p.outro(`Removed org "${name}"`);
   },
 });
 
@@ -202,9 +208,10 @@ const zoneAddSub = defineCommand({
     },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    const apex = args.apex as string;
+    p.intro(`t-stack org zone add · ${orgName} ${apex}`);
     try {
-      const orgName = args.org as string;
-      const apex = args.apex as string;
       const zoneId = args["zone-id"] as string;
       const org = await loadOrgOrBail(orgName);
       const next: OrgProfile = {
@@ -212,9 +219,9 @@ const zoneAddSub = defineCommand({
         cloudflareZones: { ...org.cloudflareZones, [apex]: zoneId },
       };
       await createOrgsStore().add(next);
-      p.log.success(`Registered ${apex} → ${zoneId} for org "${orgName}".`);
+      p.outro(`Registered ${apex} → ${zoneId}`);
     } catch (err) {
-      p.log.error(`zone add failed: ${(err as Error).message}`);
+      p.cancel(`zone add failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -235,9 +242,10 @@ const zoneDiscoverSub = defineCommand({
     },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    const apex = args.apex as string;
+    p.intro(`t-stack org zone discover · ${orgName} ${apex}`);
     try {
-      const orgName = args.org as string;
-      const apex = args.apex as string;
       const org = await loadOrgOrBail(orgName);
       const tokens = await loadTokens(orgName);
       const zoneId = await discoverZoneViaCfApi({
@@ -255,11 +263,9 @@ const zoneDiscoverSub = defineCommand({
         cloudflareZones: { ...org.cloudflareZones, [apex]: zoneId },
       };
       await createOrgsStore().add(next);
-      p.log.success(
-        `Discovered and registered ${apex} → ${zoneId} for org "${orgName}".`
-      );
+      p.outro(`Discovered ${apex} → ${zoneId}`);
     } catch (err) {
-      p.log.error(`zone discover failed: ${(err as Error).message}`);
+      p.cancel(`zone discover failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -275,15 +281,17 @@ const zoneListSub = defineCommand({
   },
   async run({ args }) {
     const orgName = args.org as string;
+    p.intro(`t-stack org zone list · ${orgName}`);
     const org = await loadOrgOrBail(orgName);
     const entries = Object.entries(org.cloudflareZones);
     if (entries.length === 0) {
-      p.log.info(`No zones registered for org "${orgName}".`);
+      p.outro(`No zones registered for org "${orgName}"`);
       return;
     }
     for (const [apex, zoneId] of entries) {
       p.log.info(`${apex}  ${zoneId}`);
     }
+    p.outro(`${entries.length} zone${entries.length === 1 ? "" : "s"}`);
   },
 });
 
@@ -301,12 +309,13 @@ const zoneRemoveSub = defineCommand({
     },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    const apex = args.apex as string;
+    p.intro(`t-stack org zone remove · ${orgName} ${apex}`);
     try {
-      const orgName = args.org as string;
-      const apex = args.apex as string;
       const org = await loadOrgOrBail(orgName);
       if (!(apex in org.cloudflareZones)) {
-        p.log.info(`No mapping for "${apex}" on org "${orgName}".`);
+        p.outro(`No mapping for "${apex}" on org "${orgName}"`);
         return;
       }
       const confirm = await p.confirm({
@@ -314,15 +323,15 @@ const zoneRemoveSub = defineCommand({
         initialValue: false,
       });
       if (p.isCancel(confirm) || !confirm) {
-        p.log.info("Aborted.");
+        p.cancel("Aborted.");
         return;
       }
       const { [apex]: _dropped, ...rest } = org.cloudflareZones;
       const next: OrgProfile = { ...org, cloudflareZones: rest };
       await createOrgsStore().add(next);
-      p.log.success(`Removed ${apex} from org "${orgName}".`);
+      p.outro(`Removed ${apex} from org "${orgName}"`);
     } catch (err) {
-      p.log.error(`zone remove failed: ${(err as Error).message}`);
+      p.cancel(`zone remove failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -350,13 +359,14 @@ const triggerListSub = defineCommand({
     org: { type: "positional", required: true, description: "Org slug" },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    p.intro(`t-stack org trigger list · ${orgName}`);
     try {
-      const orgName = args.org as string;
       await loadOrgOrBail(orgName);
       const tokens = await loadTokens(orgName);
       const orgs = await listTriggerOrgs(tokens.triggerAccessToken);
       if (orgs.length === 0) {
-        p.log.info(
+        p.outro(
           "No Trigger.dev orgs visible to this PAT (no projects yet, or PAT lacks access)."
         );
         return;
@@ -364,8 +374,9 @@ const triggerListSub = defineCommand({
       for (const o of orgs) {
         p.log.info(`${o.slug}  ${o.title}`);
       }
+      p.outro(`${orgs.length} org${orgs.length === 1 ? "" : "s"}`);
     } catch (err) {
-      p.log.error(`trigger list failed: ${(err as Error).message}`);
+      p.cancel(`trigger list failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -381,8 +392,9 @@ const triggerDiscoverSub = defineCommand({
     org: { type: "positional", required: true, description: "Org slug" },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    p.intro(`t-stack org trigger discover · ${orgName}`);
     try {
-      const orgName = args.org as string;
       const org = await loadOrgOrBail(orgName);
       const tokens = await loadTokens(orgName);
       const orgs = await listTriggerOrgs(tokens.triggerAccessToken);
@@ -399,14 +411,14 @@ const triggerDiscoverSub = defineCommand({
         })),
       });
       if (p.isCancel(pick)) {
-        p.log.info("Aborted.");
+        p.cancel("Aborted.");
         return;
       }
       const next: OrgProfile = { ...org, triggerOrgSlug: pick as string };
       await createOrgsStore().add(next);
-      p.log.success(`Set triggerOrgSlug=${pick} for org "${orgName}".`);
+      p.outro(`Set triggerOrgSlug=${pick} for org "${orgName}"`);
     } catch (err) {
-      p.log.error(`trigger discover failed: ${(err as Error).message}`);
+      p.cancel(`trigger discover failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
@@ -426,15 +438,16 @@ const triggerSetSub = defineCommand({
     },
   },
   async run({ args }) {
+    const orgName = args.org as string;
+    const slug = args.slug as string;
+    p.intro(`t-stack org trigger set · ${orgName} ${slug}`);
     try {
-      const orgName = args.org as string;
-      const slug = args.slug as string;
       const org = await loadOrgOrBail(orgName);
       const next: OrgProfile = { ...org, triggerOrgSlug: slug };
       await createOrgsStore().add(next);
-      p.log.success(`Set triggerOrgSlug=${slug} for org "${orgName}".`);
+      p.outro(`Set triggerOrgSlug=${slug} for org "${orgName}"`);
     } catch (err) {
-      p.log.error(`trigger set failed: ${(err as Error).message}`);
+      p.cancel(`trigger set failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },

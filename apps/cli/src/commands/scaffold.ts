@@ -174,10 +174,11 @@ export const scaffoldCommand = defineCommand({
     },
   },
   async run({ args }) {
+    p.intro("t-stack scaffold");
     try {
       const projectName = (args.name as string | undefined) ?? "";
       if (!projectName) {
-        p.log.error("scaffold requires a project name positional argument.");
+        p.cancel("scaffold requires a project name positional argument.");
         process.exit(1);
       }
       const parentCwd = (args.cwd as string | undefined) ?? process.cwd();
@@ -210,9 +211,9 @@ export const scaffoldCommand = defineCommand({
         decisions,
         skipInstall: Boolean(args["skip-install"]),
       });
-      p.log.success(`Scaffolded ${res.filesWritten} files into ${res.destDir}`);
+      p.outro(`Scaffolded ${res.filesWritten} files · ${res.destDir}`);
     } catch (err) {
-      p.log.error(`scaffold failed: ${(err as Error).message}`);
+      p.cancel(`scaffold failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },

@@ -1,3 +1,4 @@
+import * as p from "@clack/prompts";
 import { defineCommand } from "citty";
 import type { Ctx, PresetDef } from "../core/preset.ts";
 import { buildCtx, loadConfig, loadPreset } from "./_ctx.js";
@@ -76,11 +77,16 @@ export const provisionCommand = defineCommand({
     cwd: { type: "string", description: "Project directory (default: cwd)" },
   },
   async run({ args }) {
+    p.intro("t-stack provision");
     try {
       const cwd = (args.cwd as string | undefined) ?? process.cwd();
       const only = args.only as string | undefined;
       await runProvision({ cwd, only });
-    } catch {
+      p.outro("Provisioned");
+    } catch (err) {
+      // runProvision already logs the detailed error via ctx.logger; close the
+      // frame here.
+      p.cancel(`provision failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },

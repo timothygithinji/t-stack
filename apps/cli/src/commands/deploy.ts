@@ -91,19 +91,21 @@ export const deployCommand = defineCommand({
     cwd: { type: "string", description: "Project directory (default cwd)" },
   },
   async run({ args }) {
+    const targetRaw = ((args.target as string | undefined) ??
+      "all") as DeployTarget;
+    p.intro(`t-stack deploy · ${targetRaw}`);
     try {
-      const targetRaw = ((args.target as string | undefined) ??
-        "all") as DeployTarget;
       if (!["app", "infra", "all"].includes(targetRaw)) {
-        p.log.error(
+        p.cancel(
           `Invalid --target "${targetRaw}". Expected app, infra, or all.`
         );
         process.exit(1);
       }
       const cwd = (args.cwd as string | undefined) ?? process.cwd();
       await runDeploy({ cwd, target: targetRaw });
+      p.outro(`Deployed · target=${targetRaw}`);
     } catch (err) {
-      p.log.error(`deploy failed: ${(err as Error).message}`);
+      p.cancel(`deploy failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
