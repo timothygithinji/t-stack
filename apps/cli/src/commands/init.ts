@@ -32,7 +32,7 @@ const ARCHETYPES = [
 ] as const satisfies readonly Archetype[];
 
 function bail(msg: string): never {
-  p.log.error(msg);
+  p.cancel(msg);
   process.exit(1);
 }
 
@@ -144,11 +144,11 @@ export async function runInit(
   }
 
   // 5. Final banner.
-  p.log.success(`Done. https://${decisions.domain}`);
   p.log.info(
     `Resume any failed step:  t-stack provision --cwd ${projectDir}\n` +
       `Audit cloud state:       t-stack doctor --cwd ${projectDir}`
   );
+  p.outro(`Ready · https://${decisions.domain}`);
 }
 
 export const initCommand = defineCommand({
@@ -161,6 +161,7 @@ export const initCommand = defineCommand({
     try {
       const yes = Boolean(args.yes);
       const cwd = (args.cwd as string | undefined) ?? process.cwd();
+      p.intro("t-stack init");
 
       // org and archetype are resolved up-front: org because it sources from
       // a non-zod store (orgs.toml) and seeds the domain default; archetype
@@ -217,7 +218,7 @@ export const initCommand = defineCommand({
       const decisions = initSchema.parse(values);
       await runInit(decisions, { cwd, yes });
     } catch (err) {
-      p.log.error(`init failed: ${(err as Error).message}`);
+      p.cancel(`init failed: ${(err as Error).message}`);
       process.exit(1);
     }
   },
