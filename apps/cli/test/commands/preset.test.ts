@@ -5,10 +5,10 @@ import { listPresetIds, loadPreset } from "../../src/commands/_ctx.js";
 const CLI_ROOT = resolve(import.meta.dirname, "..", "..");
 
 describe("loadPreset", () => {
-  it("loads solo-cf-worker with the expected defaults", async () => {
-    const preset = await loadPreset("solo-cf-worker", CLI_ROOT);
-    expect(preset.id).toBe("solo-cf-worker");
-    expect(preset.name).toBe("Solo CF Worker");
+  it("loads single-cloudflare with the expected defaults", async () => {
+    const preset = await loadPreset("single-cloudflare", CLI_ROOT);
+    expect(preset.id).toBe("single-cloudflare");
+    expect(preset.name).toBe("Single (Cloudflare)");
     expect(preset.defaults.structure).toBe("single");
     expect(preset.defaults.cloudProvider).toBe("cloudflare");
     expect(preset.defaults.runtime).toBe("workers");
@@ -16,10 +16,10 @@ describe("loadPreset", () => {
     expect(typeof preset.run).toBe("function");
   });
 
-  it("loads monorepo-cf with the expected defaults", async () => {
-    const preset = await loadPreset("monorepo-cf", CLI_ROOT);
-    expect(preset.id).toBe("monorepo-cf");
-    expect(preset.name).toBe("Monorepo CF");
+  it("loads monorepo-cloudflare with the expected defaults", async () => {
+    const preset = await loadPreset("monorepo-cloudflare", CLI_ROOT);
+    expect(preset.id).toBe("monorepo-cloudflare");
+    expect(preset.name).toBe("Monorepo (Cloudflare)");
     expect(preset.defaults.structure).toBe("monorepo");
     expect(preset.defaults.docs).toBe("starlight");
     expect(preset.defaults.addons).toEqual(
@@ -29,7 +29,7 @@ describe("loadPreset", () => {
 
   it("throws with the available presets when the id is unknown", async () => {
     await expect(loadPreset("does-not-exist", CLI_ROOT)).rejects.toThrow(
-      /does-not-exist.*Available: monorepo-cf, solo-cf-worker/s
+      /does-not-exist.*Available: monorepo-cloudflare, single-cloudflare/s
     );
   });
 });
@@ -37,7 +37,7 @@ describe("loadPreset", () => {
 describe("listPresetIds", () => {
   it("returns the known preset ids in sorted order, skipping _base", async () => {
     const ids = await listPresetIds(CLI_ROOT);
-    expect(ids).toEqual(["monorepo-cf", "solo-cf-worker"]);
+    expect(ids).toEqual(["monorepo-cloudflare", "single-cloudflare"]);
     expect(ids).not.toContain("_base");
   });
 });
@@ -47,7 +47,7 @@ describe("preset defaults precede prompt-loop initial state", () => {
     // Sanity check: confirms the prompt-loop seeding rule documented in init.ts.
     // We don't import the entire init command (it pulls in clack/citty side
     // effects); instead we replicate the seeding logic.
-    const preset = await loadPreset("solo-cf-worker", CLI_ROOT);
+    const preset = await loadPreset("single-cloudflare", CLI_ROOT);
     const values: Record<string, unknown> = {
       ...(preset.defaults ?? {}),
       org: "fanya-labs",

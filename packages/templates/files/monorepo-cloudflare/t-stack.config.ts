@@ -1,6 +1,6 @@
 export default {
   org: "{{org.name}}",
-  archetype: "monorepo-cf",
+  archetype: "monorepo-cloudflare",
   projectName: "{{projectName}}",
   domain: "{{domain}}",
   database: "{{database}}",

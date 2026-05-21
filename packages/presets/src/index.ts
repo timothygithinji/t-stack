@@ -7,7 +7,7 @@
 
 export interface PresetMeta {
   /** Archetype slug; matches the `archetype` discriminator in @t-stack/schema. */
-  id: "solo-cf-worker" | "monorepo-cf";
+  id: "single-cloudflare" | "monorepo-cloudflare";
   /** Short, human-readable headline shown in the preset cards. */
   name: string;
   /** One-line description for the preset card / dropdown. */
@@ -23,24 +23,24 @@ export interface PresetMeta {
 
 export const PRESETS: readonly PresetMeta[] = [
   {
-    id: "solo-cf-worker",
-    name: "Solo CF Worker",
+    id: "single-cloudflare",
+    name: "Single (Cloudflare)",
     description: "Single Vite + CF Workers app",
     details:
       "One Vite + TanStack Start app deployed to a single Cloudflare Worker. " +
       "Pick neon or turso for the database. Optional Trigger.dev, Cloudflare " +
       "Access, and Hookdeck webhooks. Fastest path from scaffold to live URL.",
-    templates: ["_base", "solo-cf-worker"],
+    templates: ["_base", "single-cloudflare"],
   },
   {
-    id: "monorepo-cf",
+    id: "monorepo-cloudflare",
     name: "Monorepo (Cloudflare)",
     description: "Bun workspaces + Turbo monorepo",
     details:
       "Bun workspaces with apps/web, apps/server, apps/trigger and shared " +
       "packages (db, ui, types). Always uses Neon for Postgres. Same optional " +
-      "Trigger.dev / Cloudflare Access / Hookdeck add-ons as the solo preset.",
-    templates: ["_base", "monorepo-cf"],
+      "Trigger.dev / Cloudflare Access / Hookdeck add-ons as the single preset.",
+    templates: ["_base", "monorepo-cloudflare"],
   },
 ] as const;
 

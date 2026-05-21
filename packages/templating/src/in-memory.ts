@@ -45,7 +45,7 @@ export function renderRelativePath(
 }
 
 export interface InMemoryFile {
-  /** Absolute path within the source set (e.g. `solo-cf-worker/wrangler.jsonc`). */
+  /** Absolute path within the source set (e.g. `single-cloudflare/wrangler.jsonc`). */
   path: string;
   /** File contents as a UTF-8 string. Binary files are not supported in-memory. */
   content: string;

@@ -14,18 +14,17 @@ import * as trigger from "../src/plugins/trigger.js";
 import * as turso from "../src/plugins/turso.js";
 
 export default definePreset({
-  id: "monorepo-cf",
-  name: "Monorepo CF",
-  description: "Bun workspaces + Turbo monorepo",
-  templates: ["_base", "monorepo-cf"],
+  id: "single-cloudflare",
+  name: "Single (Cloudflare)",
+  description: "Single Vite + CF Workers app",
+  templates: ["_base", "single-cloudflare"],
   defaults: {
-    structure: "monorepo",
+    structure: "single",
     cloudProvider: "cloudflare",
     iac: "pulumi",
     runtime: "workers",
     frontend: "tanstack-router",
     backend: "hono",
-    docs: "starlight",
     api: "orpc",
     database: "postgres",
     databaseHost: "neon",
@@ -33,7 +32,6 @@ export default definePreset({
     auth: "better-auth",
     storage: "none",
     payments: "none",
-    addons: ["turborepo", "biome"],
     packageManager: "bun",
     git: true,
     install: true,
@@ -125,6 +123,8 @@ export default definePreset({
     ];
     const provisionDeps = await runPluginGraph(ctx, provision);
 
+    // Secrets fan-out. Each leg gates on its own predicate so the parallel
+    // batch shrinks naturally when, e.g., trigger is disabled.
     const prdSecrets = await doppler.exportEnv(ctx, "prd");
     const ghClient = await createGithubClient();
     const trg = provisionDeps["trigger.project"] as
@@ -184,6 +184,8 @@ export default definePreset({
         },
       },
     ];
+    // Seed the finalize graph with provisionDeps so `cloudflare.deploy` can
+    // read the earlier `cloudflare.pulumiUp` output.
     await runPluginGraph(ctx, finalize, provisionDeps);
   },
 });

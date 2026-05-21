@@ -1,6 +1,6 @@
 export default {
   org: "{{org.name}}",
-  archetype: "solo-cf-worker",
+  archetype: "single-cloudflare",
   projectName: "{{projectName}}",
   domain: "{{domain}}",
   database: "{{database}}",

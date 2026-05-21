@@ -96,7 +96,7 @@ export interface ResolvedPresetId {
  * Derive a preset id from the available signals, in order:
  *   1. explicit `presetId` argument
  *   2. previously-persisted state.json `project.presetId`
- *   3. fallback by `decisions.structure` (monorepo → monorepo-cf, else solo-cf-worker)
+ *   3. fallback by `decisions.structure` (monorepo → monorepo-cloudflare, else single-cloudflare)
  *
  * The returned `source` lets callers warn the user when a structure-derived
  * preset is being substituted for an explicit "custom" choice.
@@ -126,8 +126,8 @@ export async function resolvePresetId(opts: {
   return {
     id:
       opts.decisions.structure === "monorepo"
-        ? "monorepo-cf"
-        : "solo-cf-worker",
+        ? "monorepo-cloudflare"
+        : "single-cloudflare",
     source: "structure-fallback",
   };
 }

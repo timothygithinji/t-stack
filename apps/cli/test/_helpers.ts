@@ -78,11 +78,11 @@ export function defaultTokens(overrides: Partial<TokenBag> = {}): TokenBag {
  */
 export function defaultPreset(overrides: Partial<PresetDef> = {}): PresetDef {
   return {
-    id: "solo-cf-worker",
-    name: "Solo CF Worker",
+    id: "single-cloudflare",
+    name: "Single (Cloudflare)",
     description: "Test stub preset",
     defaults: {},
-    templates: ["_base", "solo-cf-worker"],
+    templates: ["_base", "single-cloudflare"],
     async run() {
       // no-op for tests
     },

@@ -274,7 +274,10 @@ export const scaffoldCommand = defineCommand({
   args: {
     name: { type: "positional", required: false, description: "Project name" },
     org: { type: "string", description: "Org slug from orgs.toml" },
-    preset: { type: "string", description: "solo-cf-worker | monorepo-cf" },
+    preset: {
+      type: "string",
+      description: "single-cloudflare | monorepo-cloudflare",
+    },
     domain: { type: "string", description: "FQDN" },
     db: { type: "string", description: "neon | turso", valueHint: "neon" },
     envs: { type: "string", description: "prd | dev+prd | dev+stg+prd" },
@@ -303,9 +306,10 @@ export const scaffoldCommand = defineCommand({
         ? join(parentCwd, projectName)
         : resolve(parentCwd, projectName);
 
-      const presetId = (args.preset as string | undefined) ?? "solo-cf-worker";
+      const presetId =
+        (args.preset as string | undefined) ?? "single-cloudflare";
       const structure: "single" | "monorepo" =
-        presetId === "monorepo-cf" ? "monorepo" : "single";
+        presetId === "monorepo-cloudflare" ? "monorepo" : "single";
       const dbHost = (args.db as string) ?? "neon";
       function dbEngineFor(h: string): "postgres" | "sqlite" | "none" {
         if (h === "neon") {

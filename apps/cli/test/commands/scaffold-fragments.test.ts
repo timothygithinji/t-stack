@@ -57,7 +57,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir, filesWritten } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -78,7 +78,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -103,7 +103,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -125,7 +125,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -166,7 +166,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -191,7 +191,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -214,7 +214,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });
@@ -234,7 +234,7 @@ describe("runScaffold fragment composition", () => {
     const { destDir, filesWritten } = await runScaffold({
       cwd,
       decisions,
-      presetId: "solo-cf-worker",
+      presetId: "single-cloudflare",
       cliRoot: CLI_ROOT,
       skipInstall: true,
     });

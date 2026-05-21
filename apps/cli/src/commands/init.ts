@@ -395,7 +395,7 @@ interface PickPresetArgs {
 
 /**
  * Resolve the preset bundle for this run. Honour `--preset` if supplied;
- * default to `solo-cf-worker` in `--yes` mode; otherwise prompt the user.
+ * default to `single-cloudflare` in `--yes` mode; otherwise prompt the user.
  *
  * Returns `null` when the user explicitly picks "custom" — the prompt loop
  * then runs without any preloaded defaults.
@@ -415,7 +415,7 @@ async function pickPreset(args: PickPresetArgs): Promise<PresetDef | null> {
   }
 
   if (args.yes) {
-    return await loadPreset("solo-cf-worker", args.cliRoot);
+    return await loadPreset("single-cloudflare", args.cliRoot);
   }
 
   const presets = await Promise.all(

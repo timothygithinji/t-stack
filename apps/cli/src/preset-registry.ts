@@ -11,11 +11,11 @@
  * filesystem scan for user-added presets (currently unused, kept as a
  * future extension point).
  */
-import monorepoCf from "../presets/monorepo-cf.js";
-import soloCfWorker from "../presets/solo-cf-worker.js";
+import monorepoCloudflare from "../presets/monorepo-cloudflare.js";
+import singleCloudflare from "../presets/single-cloudflare.js";
 import type { PresetDef } from "./core/preset.js";
 
 export const BUILTIN_PRESETS: Readonly<Record<string, PresetDef>> = {
-  "monorepo-cf": monorepoCf,
-  "solo-cf-worker": soloCfWorker,
+  "monorepo-cloudflare": monorepoCloudflare,
+  "single-cloudflare": singleCloudflare,
 };

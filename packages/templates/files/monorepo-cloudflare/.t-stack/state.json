@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archetype": "monorepo-cf",
+  "archetype": "monorepo-cloudflare",
   "projectName": "{{projectName}}",
   "createdAt": null,
   "lastProvisionedAt": null,

@@ -31,14 +31,18 @@ export const PLACEHOLDERS = {
 } as const;
 
 /**
- * Map the flat axis set back to the legacy preset slug used as a template
+ * Map the flat axis set back to the preset slug used as a template
  * directory name (and the Handlebars `archetype` var). The CLI's preset
  * registry is the source of truth — we mirror its `single`/`monorepo`
- * branch here. Other combinations fall back to `solo-cf-worker` so the
+ * branch here. Other combinations fall back to `single-cloudflare` so the
  * preview still renders something useful.
  */
-function presetIdFor(stack: DraftStack): "solo-cf-worker" | "monorepo-cf" {
-  return stack.structure === "monorepo" ? "monorepo-cf" : "solo-cf-worker";
+function presetIdFor(
+  stack: DraftStack
+): "single-cloudflare" | "monorepo-cloudflare" {
+  return stack.structure === "monorepo"
+    ? "monorepo-cloudflare"
+    : "single-cloudflare";
 }
 
 /**

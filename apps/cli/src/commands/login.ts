@@ -157,9 +157,9 @@ export const loginCommand = defineCommand({
       const logger = createLogger();
       const state = createStateStore(paths.stateFile);
       // login doesn't actually run a preset — it just needs a Ctx-shaped value
-      // so the doppler plugin helpers (slug/scope) work. We pick solo-cf-worker
+      // so the doppler plugin helpers (slug/scope) work. We pick single-cloudflare
       // as a placeholder; the `run()` body is never invoked here.
-      const preset = await loadPreset("solo-cf-worker", paths.cliRoot);
+      const preset = await loadPreset("single-cloudflare", paths.cliRoot);
       const ctx: Ctx = {
         org,
         projectName: META_PROJECT_SLUG,

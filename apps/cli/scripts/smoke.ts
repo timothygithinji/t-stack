@@ -7,7 +7,7 @@
  *   SMOKE_ORG          Org name from orgs.toml (default: timothygithinji)
  *   SMOKE_APEX         Apex domain (default: timothygithinji.com)
  *   SMOKE_CLI          CLI invocation (default: "bun src/cli.ts")
- *   SMOKE_ARCHETYPE    "solo-cf-worker" (default) or "monorepo-cf"
+ *   SMOKE_ARCHETYPE    "single-cloudflare" (default) or "monorepo-cloudflare"
  *   SMOKE_TRIGGER      "1" to include Trigger.dev in the smoke run.
  *                      Trigger.dev has no public project-create API, so the
  *                      project must already exist in the dashboard with a
@@ -25,7 +25,7 @@ import { execa } from "execa";
 
 const ORG = process.env.SMOKE_ORG ?? "timothygithinji";
 const APEX = process.env.SMOKE_APEX ?? "timothygithinji.com";
-const ARCHETYPE = process.env.SMOKE_ARCHETYPE ?? "solo-cf-worker";
+const ARCHETYPE = process.env.SMOKE_ARCHETYPE ?? "single-cloudflare";
 const PROJECT = `smoke-${Date.now()}`;
 const DOMAIN = `${PROJECT}.${APEX}`;
 const CLI = process.env.SMOKE_CLI ?? "bun src/cli.ts";

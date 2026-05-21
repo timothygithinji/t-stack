@@ -6,8 +6,8 @@
  *   bun run sync-template <repoName>
  *
  * Maps:
- *   scout / dalili      -> solo-cf-worker
- *   fanya-labs / uploader -> monorepo-cf
+ *   scout / dalili      -> single-cloudflare
+ *   fanya-labs / uploader -> monorepo-cloudflare
  *
  * Renders templates with placeholder vars (projectName=REPLACE_ME, etc.) before diffing.
  * Review-only: no files are modified.
@@ -34,13 +34,13 @@ const SKIP = new Set([
   ".next",
 ]);
 
-type Archetype = "solo-cf-worker" | "monorepo-cf";
+type Archetype = "single-cloudflare" | "monorepo-cloudflare";
 
 const ARCHETYPE_MAP: Record<string, Archetype> = {
-  scout: "solo-cf-worker",
-  dalili: "solo-cf-worker",
-  "fanya-labs": "monorepo-cf",
-  uploader: "monorepo-cf",
+  scout: "single-cloudflare",
+  dalili: "single-cloudflare",
+  "fanya-labs": "monorepo-cloudflare",
+  uploader: "monorepo-cloudflare",
 };
 
 function placeholderVars(repoName: string): Record<string, unknown> {

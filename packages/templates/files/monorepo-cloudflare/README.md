@@ -1,6 +1,6 @@
 # {{projectName}}
 
-A `monorepo-cf` t-stack project: Bun workspaces + Turbo, deployed to Cloudflare Workers.
+A `monorepo-cloudflare` t-stack project: Bun workspaces + Turbo, deployed to Cloudflare Workers.
 
 ## Apps
 

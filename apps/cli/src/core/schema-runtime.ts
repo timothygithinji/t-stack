@@ -38,7 +38,7 @@ export function buildCittyArgs(): ArgsDef {
     preset: {
       type: "string",
       description:
-        "Preset id bundle (e.g., solo-cf-worker, monorepo-cf, custom).",
+        "Preset id bundle (e.g., single-cloudflare, monorepo-cloudflare, custom).",
     },
     yes: {
       type: "boolean",

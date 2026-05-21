@@ -26,7 +26,7 @@ End-to-end smoke against a real org (creates → probes → destroys real cloud 
 
 ```bash
 SMOKE_ORG=<org> SMOKE_APEX=<apex> bun run smoke
-# SMOKE_ARCHETYPE=monorepo-cf to exercise the workspace archetype
+# SMOKE_ARCHETYPE=monorepo-cloudflare to exercise the workspace archetype
 # SMOKE_SKIP_DESTROY=1 to leave resources up for inspection
 ```
 
