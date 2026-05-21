@@ -2,6 +2,16 @@
 
 
 
+## [0.3.1](https://github.com/timothygithinji/t-stack/compare/v0.3.0...v0.3.1) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** restore package.json after publish, not after pack ([e7df39e](https://github.com/timothygithinji/t-stack/commit/e7df39ea6a210240d7402bde7553011e1d6699b8))
+
+### Documentation
+
+* **cli:** drop stale Archetypes section ([4e51c24](https://github.com/timothygithinji/t-stack/commit/4e51c246678e9ffb2aedaa3edf1090cab8031825))
+
 ## [0.3.0](https://github.com/timothygithinji/t-stack/compare/v0.2.0...v0.3.0) (2026-05-21)
 
 ### Features
