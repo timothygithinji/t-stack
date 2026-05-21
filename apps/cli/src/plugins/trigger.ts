@@ -29,16 +29,11 @@ interface TriggerProjectListResponse {
   data?: TriggerProject[];
 }
 
-interface TriggerProjectApiKey {
-  type?: string;
-  environment?: string;
-  key?: string;
-  apiKey?: string;
-}
-
-interface TriggerProjectKeysResponse {
-  keys?: TriggerProjectApiKey[];
-  apiKeys?: TriggerProjectApiKey[];
+interface TriggerProjectEnvResponse {
+  apiKey: string;
+  name: string;
+  apiUrl: string;
+  projectId: string;
 }
 
 function authHeaders(token: string): Record<string, string> {
@@ -60,17 +55,13 @@ export async function listProjects(token: string): Promise<TriggerProject[]> {
 }
 
 export async function listOrgs(token: string): Promise<TriggerOrg[]> {
-  // Trigger.dev's REST API doesn't expose an /orgs endpoint, so we derive the
-  // unique set of orgs from the projects list. PATs with zero visible projects
-  // will return an empty list.
-  const projects = await listProjects(token);
-  const seen = new Map<string, TriggerOrg>();
-  for (const p of projects) {
-    if (p.organization?.slug && !seen.has(p.organization.slug)) {
-      seen.set(p.organization.slug, p.organization);
-    }
+  const res = await ofetch<
+    TriggerOrg[] | { orgs?: TriggerOrg[]; data?: TriggerOrg[] }
+  >(`${TRIGGER_API_BASE}/orgs`, { method: "GET", headers: authHeaders(token) });
+  if (Array.isArray(res)) {
+    return res;
   }
-  return Array.from(seen.values());
+  return res.orgs ?? res.data ?? [];
 }
 
 async function listProjectsForActiveOrg(ctx: Ctx): Promise<TriggerProject[]> {
@@ -88,30 +79,24 @@ async function findProjectByName(
   name: string
 ): Promise<TriggerProject | undefined> {
   const orgProjects = await listProjectsForActiveOrg(ctx);
-  return orgProjects.find((p) => p.name === name);
+  const needle = name.toLowerCase();
+  return orgProjects.find((p) => p.name.toLowerCase() === needle);
 }
 
 async function fetchProdSecretKey(
   ctx: Ctx,
   projectRef: string
 ): Promise<string> {
-  const res = await ofetch<TriggerProjectKeysResponse>(
-    `${TRIGGER_API_BASE}/projects/${projectRef}/keys`,
+  const res = await ofetch<TriggerProjectEnvResponse>(
+    `${TRIGGER_API_BASE}/projects/${projectRef}/prod`,
     { method: "GET", headers: authHeaders(ctx.tokens.triggerAccessToken) }
   );
-  const keys = res.keys ?? res.apiKeys ?? [];
-  const prod = keys.find(
-    (k) =>
-      (k.environment === "prod" || k.environment === "production") &&
-      (k.type === "secret" || k.type === undefined)
-  );
-  const key = prod?.key ?? prod?.apiKey;
-  if (!key) {
+  if (!res.apiKey) {
     throw new Error(
       `Trigger.dev project ${projectRef} has no production secret key available`
     );
   }
-  return key;
+  return res.apiKey;
 }
 
 export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
@@ -125,44 +110,24 @@ export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
     `trigger.createProject name=${ctx.projectName} orgSlug=${ctx.org.triggerOrgSlug}`
   );
 
-  let project: TriggerProject | undefined;
-  try {
+  // Trigger.dev's POST endpoint allows duplicate names (returns 200 with a
+  // disambiguated slug), so we must look up by name first to stay idempotent
+  // across re-runs. Match is case-insensitive to avoid creating a sibling
+  // project that only differs in casing.
+  let project = await findProjectByName(ctx, ctx.projectName);
+
+  if (!project) {
     const created = await ofetch<TriggerProject | { project?: TriggerProject }>(
-      `${TRIGGER_API_BASE}/projects`,
+      `${TRIGGER_API_BASE}/orgs/${ctx.org.triggerOrgSlug}/projects`,
       {
         method: "POST",
         headers: authHeaders(ctx.tokens.triggerAccessToken),
-        body: {
-          name: ctx.projectName,
-          organizationSlug: ctx.org.triggerOrgSlug,
-        },
+        body: { name: ctx.projectName },
       }
     );
     project =
       (created as { project?: TriggerProject }).project ??
       (created as TriggerProject);
-  } catch (err) {
-    const status = (err as { response?: { status?: number } }).response?.status;
-    if (status === 404 || status === 405) {
-      ctx.logger.debug(
-        "trigger.createProject create endpoint unavailable, looking up existing project by name"
-      );
-      project = await findProjectByName(ctx, ctx.projectName);
-      if (!project) {
-        throw new Error(
-          `Project named "${ctx.projectName}" not found in Trigger.dev org "${ctx.org.triggerOrgSlug}". Create it in the dashboard first.`
-        );
-      }
-    } else if (status === 409 || status === 422) {
-      project = await findProjectByName(ctx, ctx.projectName);
-      if (!project) {
-        throw new Error(
-          `Trigger.dev reported project "${ctx.projectName}" exists but could not locate it in org "${ctx.org.triggerOrgSlug}"`
-        );
-      }
-    } else {
-      throw err;
-    }
   }
 
   const projectRef = project.ref ?? project.externalRef ?? project.id;

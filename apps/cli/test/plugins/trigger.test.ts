@@ -9,7 +9,9 @@ import {
 import { makeTestCtx } from "../_helpers.js";
 
 const PROJECTS_URL = "https://api.trigger.dev/api/v1/projects";
-const KEYS_URL = "https://api.trigger.dev/api/v1/projects/:ref/keys";
+const ORGS_URL = "https://api.trigger.dev/api/v1/orgs";
+const CREATE_URL = "https://api.trigger.dev/api/v1/orgs/:slug/projects";
+const PROD_KEY_URL = "https://api.trigger.dev/api/v1/projects/:ref/prod";
 
 const PROJECT_LIST_TWO_ORGS = [
   {
@@ -36,9 +38,25 @@ const PROJECT_LIST_TWO_ORGS = [
   },
 ];
 
-function keysResponse() {
+const ORGS_LIST = [
+  {
+    id: "cmp46rmqx01w8n50imj6anvpx",
+    title: "Timothy Githinji",
+    slug: "personal-108a",
+  },
+  {
+    id: "cmp99sideproject",
+    title: "Side Project Co",
+    slug: "timothy-githinji-d0f4",
+  },
+];
+
+function prodKeyResponse(apiKey = "tr_prod_secret_xxx") {
   return HttpResponse.json({
-    keys: [{ type: "secret", environment: "prod", key: "tr_prod_secret_xxx" }],
+    apiKey,
+    name: "demo",
+    apiUrl: "https://api.trigger.dev",
+    projectId: "cmpfsuh3k01ioo50jtael7qcl",
   });
 }
 
@@ -58,10 +76,8 @@ describe("trigger plugin (org-scoped)", () => {
     expect(got[0]?.organization?.slug).toBe("personal-108a");
   });
 
-  it("listOrgs derives the unique set of orgs from projects", async () => {
-    server.use(
-      http.get(PROJECTS_URL, () => HttpResponse.json(PROJECT_LIST_TWO_ORGS))
-    );
+  it("listOrgs fetches /orgs directly so PATs with no projects still see orgs", async () => {
+    server.use(http.get(ORGS_URL, () => HttpResponse.json(ORGS_LIST)));
     const orgs = await listOrgs("tr_pat_xxx");
     expect(orgs.map((o) => o.slug).sort()).toEqual([
       "personal-108a",
@@ -69,24 +85,29 @@ describe("trigger plugin (org-scoped)", () => {
     ]);
   });
 
-  it("createProject POSTs name + organizationSlug and returns auto-generated slug", async () => {
-    let capturedBody: unknown;
+  it("createProject reuses an existing project in the active org without POSTing", async () => {
+    let postCalled = false;
     server.use(
-      http.post(PROJECTS_URL, async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          id: "cmpNEWID",
-          externalRef: "proj_new",
-          name: "demo",
-          slug: "demo-aBcD",
-          organization: {
-            id: "cmp46rmqx01w8n50imj6anvpx",
-            title: "Timothy Githinji",
-            slug: "personal-108a",
+      http.get(PROJECTS_URL, () =>
+        HttpResponse.json([
+          {
+            id: "cmp_existing",
+            externalRef: "proj_existing",
+            name: "demo",
+            slug: "demo-existing",
+            organization: {
+              id: "cmp46rmqx01w8n50imj6anvpx",
+              title: "Timothy Githinji",
+              slug: "personal-108a",
+            },
           },
-        });
+        ])
+      ),
+      http.post(CREATE_URL, () => {
+        postCalled = true;
+        return HttpResponse.json({}, { status: 500 });
       }),
-      http.get(KEYS_URL, () => keysResponse())
+      http.get(PROD_KEY_URL, () => prodKeyResponse())
     );
 
     const ctx = await makeTestCtx({
@@ -95,38 +116,22 @@ describe("trigger plugin (org-scoped)", () => {
     });
     const refs = await createProject(ctx);
 
-    expect(capturedBody).toEqual({
-      name: "demo",
-      organizationSlug: "personal-108a",
-    });
-    expect(refs.slug).toBe("demo-aBcD");
-    expect(refs.projectRef).toBe("proj_new");
+    expect(postCalled).toBe(false);
+    expect(refs.slug).toBe("demo-existing");
+    expect(refs.projectRef).toBe("proj_existing");
     expect(refs.secretKey).toBe("tr_prod_secret_xxx");
   });
 
-  it("createProject falls back to find-by-name on 409 within the active org only", async () => {
+  it("createProject matches existing project names case-insensitively", async () => {
+    let postCalled = false;
     server.use(
-      http.post(PROJECTS_URL, () =>
-        HttpResponse.json({ message: "conflict" }, { status: 409 })
-      ),
       http.get(PROJECTS_URL, () =>
         HttpResponse.json([
           {
-            id: "cmp_other_uploader",
-            externalRef: "proj_uploader",
-            name: "Uploader",
-            slug: "uploader-eyIx",
-            organization: {
-              id: "cmp99sideproject",
-              title: "Side Project Co",
-              slug: "timothy-githinji-d0f4",
-            },
-          },
-          {
-            id: "cmp_mine_uploader",
-            externalRef: "proj_uploader_mine",
-            name: "Uploader",
-            slug: "uploader-zZzZ",
+            id: "cmp_existing",
+            externalRef: "proj_existing",
+            name: "GAFF",
+            slug: "gaff-XYZ",
             organization: {
               id: "cmp46rmqx01w8n50imj6anvpx",
               title: "Timothy Githinji",
@@ -135,94 +140,27 @@ describe("trigger plugin (org-scoped)", () => {
           },
         ])
       ),
-      http.get(KEYS_URL, () => keysResponse())
+      http.post(CREATE_URL, () => {
+        postCalled = true;
+        return HttpResponse.json({}, { status: 500 });
+      }),
+      http.get(PROD_KEY_URL, () => prodKeyResponse())
     );
 
     const ctx = await makeTestCtx({
-      projectName: "Uploader",
+      projectName: "gaff",
       org: { triggerOrgSlug: "personal-108a" },
     });
     const refs = await createProject(ctx);
 
-    expect(refs.slug).toBe("uploader-zZzZ");
-    expect(refs.projectRef).toBe("proj_uploader_mine");
+    expect(postCalled).toBe(false);
+    expect(refs.projectRef).toBe("proj_existing");
   });
 
-  it("createProject falls back to find-by-name on 422", async () => {
+  it("createProject scopes the lookup to the active org only", async () => {
+    let postBody: unknown;
+    let postUrl = "";
     server.use(
-      http.post(PROJECTS_URL, () =>
-        HttpResponse.json({ message: "validation" }, { status: 422 })
-      ),
-      http.get(PROJECTS_URL, () =>
-        HttpResponse.json([
-          {
-            id: "cmp_demo",
-            externalRef: "proj_demo",
-            name: "demo",
-            slug: "demo-xyZ1",
-            organization: {
-              id: "cmp46rmqx01w8n50imj6anvpx",
-              title: "Timothy Githinji",
-              slug: "personal-108a",
-            },
-          },
-        ])
-      ),
-      http.get(KEYS_URL, () => keysResponse())
-    );
-
-    const ctx = await makeTestCtx({
-      projectName: "demo",
-      org: { triggerOrgSlug: "personal-108a" },
-    });
-    const refs = await createProject(ctx);
-    expect(refs.slug).toBe("demo-xyZ1");
-  });
-
-  it("createProject falls back to find-by-name on 404/405 (create endpoint unavailable)", async () => {
-    server.use(
-      http.post(PROJECTS_URL, () =>
-        HttpResponse.json({ message: "not found" }, { status: 404 })
-      ),
-      http.get(PROJECTS_URL, () =>
-        HttpResponse.json([
-          {
-            id: "cmp_demo",
-            externalRef: "proj_demo",
-            name: "demo",
-            slug: "demo-pre1",
-            organization: {
-              id: "cmp46rmqx01w8n50imj6anvpx",
-              title: "Timothy Githinji",
-              slug: "personal-108a",
-            },
-          },
-        ])
-      ),
-      http.get(KEYS_URL, () => keysResponse())
-    );
-
-    const ctx = await makeTestCtx({
-      projectName: "demo",
-      org: { triggerOrgSlug: "personal-108a" },
-    });
-    const refs = await createProject(ctx);
-    expect(refs.slug).toBe("demo-pre1");
-  });
-
-  it("createProject throws helpful error when triggerOrgSlug is missing", async () => {
-    const ctx = await makeTestCtx({
-      projectName: "demo",
-      org: { triggerOrgSlug: undefined },
-    });
-    await expect(createProject(ctx)).rejects.toThrow(/no triggerOrgSlug/);
-  });
-
-  it("createProject throws when 404 lookup finds no matching project in the active org", async () => {
-    server.use(
-      http.post(PROJECTS_URL, () =>
-        HttpResponse.json({ message: "not found" }, { status: 404 })
-      ),
       http.get(PROJECTS_URL, () =>
         HttpResponse.json([
           {
@@ -237,6 +175,102 @@ describe("trigger plugin (org-scoped)", () => {
             },
           },
         ])
+      ),
+      http.post(CREATE_URL, async ({ request }) => {
+        postUrl = request.url;
+        postBody = await request.json();
+        return HttpResponse.json({
+          id: "cmp_new",
+          externalRef: "proj_new",
+          name: "demo",
+          slug: "demo-new",
+          organization: {
+            id: "cmp46rmqx01w8n50imj6anvpx",
+            title: "Timothy Githinji",
+            slug: "personal-108a",
+          },
+        });
+      }),
+      http.get(PROD_KEY_URL, () => prodKeyResponse())
+    );
+
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      org: { triggerOrgSlug: "personal-108a" },
+    });
+    const refs = await createProject(ctx);
+
+    expect(postUrl).toBe(
+      "https://api.trigger.dev/api/v1/orgs/personal-108a/projects"
+    );
+    expect(postBody).toEqual({ name: "demo" });
+    expect(refs.projectRef).toBe("proj_new");
+  });
+
+  it("createProject POSTs to the org-scoped URL with only {name} when no match exists", async () => {
+    let postUrl = "";
+    let postBody: unknown;
+    server.use(
+      http.get(PROJECTS_URL, () => HttpResponse.json([])),
+      http.post(CREATE_URL, async ({ request }) => {
+        postUrl = request.url;
+        postBody = await request.json();
+        return HttpResponse.json({
+          id: "cmpNEWID",
+          externalRef: "proj_new",
+          name: "demo",
+          slug: "demo-aBcD",
+          organization: {
+            id: "cmp46rmqx01w8n50imj6anvpx",
+            title: "Timothy Githinji",
+            slug: "personal-108a",
+          },
+        });
+      }),
+      http.get(PROD_KEY_URL, () => prodKeyResponse())
+    );
+
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      org: { triggerOrgSlug: "personal-108a" },
+    });
+    const refs = await createProject(ctx);
+
+    expect(postUrl).toBe(
+      "https://api.trigger.dev/api/v1/orgs/personal-108a/projects"
+    );
+    expect(postBody).toEqual({ name: "demo" });
+    expect(refs.slug).toBe("demo-aBcD");
+    expect(refs.projectRef).toBe("proj_new");
+    expect(refs.secretKey).toBe("tr_prod_secret_xxx");
+  });
+
+  it("createProject throws helpful error when triggerOrgSlug is missing", async () => {
+    const ctx = await makeTestCtx({
+      projectName: "demo",
+      org: { triggerOrgSlug: undefined },
+    });
+    await expect(createProject(ctx)).rejects.toThrow(/no triggerOrgSlug/);
+  });
+
+  it("createProject surfaces a clear error when the prod env has no apiKey", async () => {
+    server.use(
+      http.get(PROJECTS_URL, () => HttpResponse.json([])),
+      http.post(CREATE_URL, () =>
+        HttpResponse.json({
+          id: "cmpNEWID",
+          externalRef: "proj_new",
+          name: "demo",
+          slug: "demo-aBcD",
+        })
+      ),
+      http.get(PROD_KEY_URL, () =>
+        HttpResponse.json({
+          apiKey: "",
+          name: "demo",
+          apiUrl: "https://api.trigger.dev",
+          projectId: "p",
+        })
       )
     );
 
@@ -245,7 +279,7 @@ describe("trigger plugin (org-scoped)", () => {
       org: { triggerOrgSlug: "personal-108a" },
     });
     await expect(createProject(ctx)).rejects.toThrow(
-      /not found in Trigger\.dev org "personal-108a"/
+      /no production secret key/
     );
   });
 });
