@@ -23,7 +23,8 @@
     "react-dom": "^19.0.0"{{#if neon}},
     "@neondatabase/serverless": "^0.10.4"{{/if}}{{#if turso}},
     "@libsql/client": "^0.14.0"{{/if}}{{#if trigger}},
-    "@trigger.dev/sdk": "^3.3.10"{{/if}}
+    "@trigger.dev/sdk": "^4.4.6"{{/if}}{{#if betterAuth}},
+    "better-auth": "^1.6.11"{{/if}}
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -33,6 +34,7 @@
     "ultracite": "^4.1.15",
     "vite": "^6.0.3",
     "vitest": "^2.1.8",
-    "wrangler": "^3.91.0"
+    "wrangler": "^3.91.0"{{#if trigger}},
+    "trigger.dev": "^4.4.6"{{/if}}
   }
 }

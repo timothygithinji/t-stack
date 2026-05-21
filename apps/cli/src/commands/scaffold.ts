@@ -76,6 +76,7 @@ function deriveVars(
     hookdeck: d.hookdeck,
     neon: dbSlug === "neon",
     turso: dbSlug === "turso",
+    betterAuth: d.auth === "better-auth",
     cloudflareZoneId: resolved.zoneId,
     cloudflareZoneApex: resolved.apex,
     createdAt: new Date().toISOString(),

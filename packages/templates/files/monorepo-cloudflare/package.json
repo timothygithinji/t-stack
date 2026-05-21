@@ -15,7 +15,9 @@
       "@neondatabase/serverless": "^0.10.3",
       "react": "^19.0.0",
       "react-dom": "^19.0.0",
-      {{#if trigger}}"@trigger.dev/sdk": "^3.0.0",
+      {{#if trigger}}"@trigger.dev/sdk": "^4.4.6",
+      "trigger.dev": "^4.4.6",
+      {{/if}}{{#if betterAuth}}"better-auth": "^1.6.11",
       {{/if}}"wrangler": "^4.0.0",
       "@cloudflare/workers-types": "^4.20241112.0"
     }
