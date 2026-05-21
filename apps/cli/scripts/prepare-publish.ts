@@ -1,13 +1,19 @@
 #!/usr/bin/env bun
 /**
- * Strip @t-stack/* workspace deps from package.json before `npm pack` / publish.
+ * Strip @t-stack/* workspace deps from package.json before publishing.
  * Bun's build inlines those packages into dist/cli.js, so the published
  * package doesn't need them as runtime deps. Leaving them in would break
  * `npm install` against the published tarball because consumers can't
  * resolve `workspace:*`.
  *
- * The companion script restore-publish.ts puts the original back in place
- * via `postpack`, so the source-controlled file is never mutated for long.
+ * Wired as `prepublishOnly` (not `prepack`) so the stripped package.json is
+ * still on disk when npm captures the registry version-metadata document
+ * after pack. With a postpack-restore the metadata would carry workspace:*
+ * even though the tarball was clean, and `bun install` reads from that
+ * metadata, not the tarball.
+ *
+ * The companion script restore-publish.ts puts the original back via
+ * `postpublish`, after the upload has completed.
  */
 import { copyFile, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

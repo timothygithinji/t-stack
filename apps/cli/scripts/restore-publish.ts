@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 /**
  * Companion to prepare-publish.ts — restore package.json from the backup
- * once `npm pack` / publish has finished consuming the stripped version.
+ * once npm publish has finished consuming the stripped version. Wired as
+ * `postpublish` (not `postpack`) so the restore happens after the registry
+ * metadata is captured, not before.
  */
 import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
