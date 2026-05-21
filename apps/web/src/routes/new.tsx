@@ -4,7 +4,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative — caller labels the anchor and passes aria-hidden
     <svg
       aria-hidden="true"
       fill="currentColor"
