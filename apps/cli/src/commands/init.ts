@@ -36,6 +36,33 @@ function bail(msg: string): never {
   process.exit(1);
 }
 
+function renderDecisionsSummary(
+  decisions: InitDecisions,
+  orgName: string
+): string {
+  const lines: string[] = [];
+  lines.push(`Project    ${decisions.projectName}`);
+  lines.push(`Archetype  ${decisions.archetype}`);
+  lines.push(`Org        ${orgName}`);
+  lines.push(`Domain     ${decisions.domain}`);
+  if (decisions.archetype === "solo-cf-worker") {
+    lines.push(`Database   ${decisions.database}`);
+  }
+  lines.push(`Envs       ${decisions.envs}`);
+  const addons: string[] = [];
+  if (decisions.trigger) {
+    addons.push("trigger");
+  }
+  if (decisions.access) {
+    addons.push("access");
+  }
+  if (decisions.hookdeck) {
+    addons.push("hookdeck");
+  }
+  lines.push(`Add-ons    ${addons.length > 0 ? addons.join(", ") : "(none)"}`);
+  return lines.join("\n");
+}
+
 async function pickOrg(initial?: string): Promise<string> {
   const orgs = await createOrgsStore().list();
   if (orgs.length === 0) {
@@ -48,7 +75,7 @@ async function pickOrg(initial?: string): Promise<string> {
     return orgs[0].name;
   }
   const choice = await p.select({
-    message: "Which org?",
+    message: "Which org owns this project?",
     options: orgs.map((o) => ({
       value: o.name,
       label: `${o.name} (${o.defaultDomain})`,
@@ -216,8 +243,19 @@ export const initCommand = defineCommand({
       await ensureZoneForDomain(orgProfile, domain, yes);
 
       const decisions = initSchema.parse(values);
+      if (!yes) {
+        p.note(renderDecisionsSummary(decisions, orgName), "Review");
+        const proceed = await p.confirm({
+          message: "Proceed with these settings?",
+          initialValue: true,
+        });
+        if (p.isCancel(proceed) || !proceed) {
+          bail("Cancelled.");
+        }
+      }
       await runInit(decisions, { cwd, yes });
     } catch (err) {
+      p.log.info("Hint: t-stack doctor — verify token health and try again");
       p.cancel(`init failed: ${(err as Error).message}`);
       process.exit(1);
     }
@@ -269,6 +307,11 @@ function readFlag(
   return args[kebabName(field.name)];
 }
 
+const ARCHETYPE_LABELS: Record<Archetype, string> = {
+  "solo-cf-worker": "solo-cf-worker — single Cloudflare Worker",
+  "monorepo-cf": "monorepo-cf — Turborepo with Worker + web",
+};
+
 async function pickArchetype(
   flagValue: string | undefined,
   yes: boolean
@@ -285,8 +328,8 @@ async function pickArchetype(
     return "solo-cf-worker";
   }
   const v = await p.select({
-    message: "Archetype?",
-    options: ARCHETYPES.map((a) => ({ value: a, label: a })),
+    message: "Pick an archetype",
+    options: ARCHETYPES.map((a) => ({ value: a, label: ARCHETYPE_LABELS[a] })),
     initialValue: "solo-cf-worker",
   });
   if (p.isCancel(v)) {

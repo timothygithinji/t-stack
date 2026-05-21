@@ -164,17 +164,22 @@ const showSub = defineCommand({
 
 const removeSub = defineCommand({
   meta: { name: "remove", description: "Remove an org from orgs.toml." },
-  args: { name: { type: "positional", required: true } },
+  args: {
+    name: { type: "positional", required: true },
+    yes: { type: "boolean", description: "Skip the confirmation prompt" },
+  },
   async run({ args }) {
     const name = args.name as string;
     p.intro(`t-stack org remove · ${name}`);
-    const confirm = await p.confirm({
-      message: `Remove org "${name}" from orgs.toml? (Cloud resources are not touched.)`,
-      initialValue: false,
-    });
-    if (p.isCancel(confirm) || !confirm) {
-      p.cancel("Aborted.");
-      return;
+    if (!args.yes) {
+      const confirm = await p.confirm({
+        message: `Remove org "${name}" from orgs.toml? (Cloud resources are not touched.)`,
+        initialValue: false,
+      });
+      if (p.isCancel(confirm) || !confirm) {
+        p.cancel("Aborted.");
+        return;
+      }
     }
     await createOrgsStore().remove(name);
     p.outro(`Removed org "${name}"`);
@@ -307,6 +312,7 @@ const zoneRemoveSub = defineCommand({
       required: true,
       description: "Apex domain to drop",
     },
+    yes: { type: "boolean", description: "Skip the confirmation prompt" },
   },
   async run({ args }) {
     const orgName = args.org as string;
@@ -318,13 +324,15 @@ const zoneRemoveSub = defineCommand({
         p.outro(`No mapping for "${apex}" on org "${orgName}"`);
         return;
       }
-      const confirm = await p.confirm({
-        message: `Remove ${apex} (${org.cloudflareZones[apex]}) from org "${orgName}"?`,
-        initialValue: false,
-      });
-      if (p.isCancel(confirm) || !confirm) {
-        p.cancel("Aborted.");
-        return;
+      if (!args.yes) {
+        const confirm = await p.confirm({
+          message: `Remove ${apex} (${org.cloudflareZones[apex]}) from org "${orgName}"?`,
+          initialValue: false,
+        });
+        if (p.isCancel(confirm) || !confirm) {
+          p.cancel("Aborted.");
+          return;
+        }
       }
       const { [apex]: _dropped, ...rest } = org.cloudflareZones;
       const next: OrgProfile = { ...org, cloudflareZones: rest };
