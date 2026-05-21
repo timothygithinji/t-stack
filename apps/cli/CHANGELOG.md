@@ -2,6 +2,12 @@
 
 
 
+## [0.4.0](https://github.com/timothygithinji/t-stack/compare/v0.3.7...v0.4.0) (2026-05-21)
+
+### Features
+
+* **cli:** prompt for Neon region during init with live region list ([101aeb3](https://github.com/timothygithinji/t-stack/commit/101aeb36a13c3ce4f24c375007ac3de0d7e69ec4))
+
 ## [0.3.7](https://github.com/timothygithinji/t-stack/compare/v0.3.6...v0.3.7) (2026-05-21)
 
 ### Bug Fixes
