@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "generate-templates": "bun run scripts/generate-templates.ts",
+    "predev": "bun run generate-templates",
+    "prebuild": "bun run generate-templates",
+    "pretypecheck": "bun run generate-templates",
     "dev": "vite dev --port 3001",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
@@ -23,6 +27,9 @@
     "handlebars": "4.7.9",
     "lucide-react": "0.474.0",
     "react": "19.2.0",
+    "@shikijs/langs": "1.29.1",
+    "@shikijs/themes": "1.29.1",
+    "shiki": "1.29.1",
     "react-dom": "19.2.0",
     "tailwind-merge": "2.6.0",
     "zod": "4.4.3"
