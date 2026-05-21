@@ -2,6 +2,12 @@
 
 
 
+## [0.6.0](https://github.com/timothygithinji/t-stack/compare/v0.5.1...v0.6.0) (2026-05-21)
+
+### Features
+
+* **cli:** verify hook for liveness check before skipping completed steps ([4e45a87](https://github.com/timothygithinji/t-stack/commit/4e45a87b8cb8b7624038b50f072ce76e27f1a96b))
+
 ## [0.5.1](https://github.com/timothygithinji/t-stack/compare/v0.5.0...v0.5.1) (2026-05-21)
 
 ### Bug Fixes
