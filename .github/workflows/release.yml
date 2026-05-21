@@ -4,18 +4,16 @@ on:
   push:
     branches:
       - main
+    # Only trigger on changes to files that actually affect what users get
+    # from `npm install @timothygithinji/t-stack`. Tests, scripts, lint configs,
+    # docs, the workflow file itself — all excluded; use workflow_dispatch
+    # if those need to release.
     paths:
       - "src/**"
       - "presets/**"
       - "templates/**"
-      - "scripts/**"
-      - "test/**"
       - "package.json"
       - "bun.lock"
-      - "tsconfig.json"
-      - "biome.json"
-      - ".release-it.ts"
-      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       reason:
