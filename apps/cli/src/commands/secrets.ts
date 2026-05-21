@@ -5,7 +5,10 @@ import { join } from "pathe";
 import type { Ctx } from "../core/preset.ts";
 import * as cloudflare from "../plugins/cloudflare.js";
 import * as doppler from "../plugins/doppler.js";
-import { configureDopplerOidc, createGithubClient } from "../plugins/github.js";
+import {
+  configureDopplerDeployToken,
+  createGithubClient,
+} from "../plugins/github.js";
 import * as trigger from "../plugins/trigger.js";
 import { buildCtx, loadConfig } from "./_ctx.js";
 
@@ -29,9 +32,9 @@ export async function runSecretsSync(ctx: Ctx, env = "prd"): Promise<void> {
   ctx.logger.step("Pushing secrets to Cloudflare Worker...");
   await cloudflare.pushSecrets(ctx, secrets);
 
-  ctx.logger.step("Configuring GitHub Actions Doppler OIDC vars...");
+  ctx.logger.step("Refreshing Doppler service token for GitHub Actions...");
   const gh = await createGithubClient();
-  await configureDopplerOidc(ctx, gh);
+  await configureDopplerDeployToken(ctx, gh);
 
   if (ctx.decisions.trigger) {
     const refs = ctx.state.get("trigger.project")?.refs as

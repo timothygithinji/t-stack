@@ -4,6 +4,7 @@ import { execa } from "execa";
 import sodium from "libsodium-wrappers";
 import { join } from "pathe";
 import type { Ctx } from "../core/preset.ts";
+import { upsertServiceToken as dopplerUpsertServiceToken } from "./doppler.js";
 
 export interface GitHubRepoRef {
   owner: string;
@@ -90,60 +91,31 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
   }
 }
 
-function orgEnvSuffix(orgSlug: string): string {
-  return orgSlug.toUpperCase().replace(/-/g, "_");
-}
-
-export async function configureDopplerOidc(
+/**
+ * Provision a Doppler service token scoped to `${projectName}/prd` and push
+ * it to the GitHub repo as the `DOPPLER_TOKEN` secret. Workflows can then
+ * authenticate to Doppler by setting `DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}`
+ * in the env block — no OIDC dance needed.
+ *
+ * Replaces the previous `configureDopplerOidc` path which required a paid
+ * Doppler workplace and an out-of-band identity UUID in orgs.toml. Service
+ * tokens work on Doppler's free plan and are config-scoped + read-only by
+ * default, so the blast radius is limited to one env's secrets.
+ */
+export async function configureDopplerDeployToken(
   ctx: Ctx,
   gh: Octokit
 ): Promise<void> {
-  const owner = ctx.org.githubOwner;
-  const repo = ctx.projectName;
-  const suffix = orgEnvSuffix(ctx.org.dopplerWorkplaceName);
-  const envVarKey = `T_STACK_DOPPLER_OIDC_IDENTITY_ID_${suffix}`;
-  const identityId = ctx.org.dopplerOidcIdentityId ?? process.env[envVarKey];
-  if (!identityId) {
-    ctx.logger.debug(
-      `Skipping GHA Doppler OIDC vars: no identity configured for org ${ctx.org.name}. ` +
-        `Set \`dopplerOidcIdentityId\` in orgs.toml or export ${envVarKey} to enable GitHub Actions deploys.`
-    );
-    return;
-  }
-
-  const projectSlug = ctx.projectName
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const vars: Record<string, string> = {
-    DOPPLER_IDENTITY_ID: identityId,
-    DOPPLER_PROJECT_SLUG: projectSlug,
-  };
-
-  for (const [name, value] of Object.entries(vars)) {
-    ctx.logger.debug(`github.configureDopplerOidc set var ${name}`);
-    try {
-      await gh.request("PATCH /repos/{owner}/{repo}/actions/variables/{name}", {
-        owner,
-        repo,
-        name,
-        value,
-      });
-    } catch (err) {
-      const status = (err as { status?: number }).status;
-      if (status === 404) {
-        await gh.request("POST /repos/{owner}/{repo}/actions/variables", {
-          owner,
-          repo,
-          name,
-          value,
-        });
-      } else {
-        throw err;
-      }
-    }
-  }
+  ctx.logger.debug(
+    `github.configureDopplerDeployToken project=${ctx.projectName}`
+  );
+  const dopplerToken = await dopplerUpsertServiceToken(
+    ctx,
+    ctx.projectName,
+    "prd",
+    "github-actions-deploy"
+  );
+  await setRepoSecret(ctx, gh, "DOPPLER_TOKEN", dopplerToken);
 }
 
 export async function setRepoSecret(

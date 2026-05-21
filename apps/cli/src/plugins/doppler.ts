@@ -38,6 +38,28 @@ interface ProjectCreateResp {
   project?: DopplerProject;
 }
 
+interface DopplerServiceToken {
+  slug: string;
+  name: string;
+  /** Only present in the create response. List/get responses redact it. */
+  key?: string;
+  expires_at?: string | null;
+  access?: string;
+}
+
+interface TokensListResp {
+  tokens?: DopplerServiceToken[];
+}
+
+interface TokenCreateResp {
+  /** Body shape on POST /v3/configs/tokens — the create response flattens the token fields. */
+  name?: string;
+  slug?: string;
+  key?: string;
+  expires_at?: string | null;
+  access?: string;
+}
+
 /** Per-org scope directory the user `doppler login --scope`'d against. */
 export function orgScope(orgName: string): string {
   return join(homedir(), ".t-stack", "orgs", orgName);
@@ -332,6 +354,88 @@ export async function exportPerProjectSecret(
   } catch {
     return;
   }
+}
+
+async function listServiceTokens(
+  token: string,
+  project: string,
+  config: string
+): Promise<DopplerServiceToken[]> {
+  const res = await ofetch<TokensListResp>(
+    `${DOPPLER_API_BASE}/configs/tokens`,
+    {
+      method: "GET",
+      headers: authHeaders(token),
+      query: { project, config },
+    }
+  );
+  return res.tokens ?? [];
+}
+
+async function deleteServiceToken(
+  token: string,
+  project: string,
+  config: string,
+  slug: string
+): Promise<void> {
+  await ofetch(`${DOPPLER_API_BASE}/configs/tokens/token`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+    body: { project, config, slug },
+  });
+}
+
+async function createServiceToken(
+  token: string,
+  project: string,
+  config: string,
+  name: string,
+  access: "read" | "read/write"
+): Promise<string> {
+  const res = await ofetch<TokenCreateResp>(
+    `${DOPPLER_API_BASE}/configs/tokens`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: { project, config, name, access },
+    }
+  );
+  if (!res.key) {
+    throw new Error(
+      "Doppler service token create response did not include `key`"
+    );
+  }
+  return res.key;
+}
+
+/**
+ * Mint a Doppler service token for `${project}/${config}` under a stable name
+ * and return its key. If a token with the same name already exists in that
+ * config, it is deleted first — the existing key is irretrievable (Doppler
+ * only returns the key on creation) so rotation is the only path to a usable
+ * value on re-runs.
+ */
+export async function upsertServiceToken(
+  ctx: Ctx,
+  project: string,
+  config: string,
+  name: string,
+  access: "read" | "read/write" = "read"
+): Promise<string> {
+  const token = await getCliToken(ctx);
+  ctx.logger.debug(
+    `doppler.upsertServiceToken project=${project} config=${config} name=${name}`
+  );
+  const existing = await listServiceTokens(token, project, config);
+  for (const t of existing) {
+    if (t.name === name) {
+      ctx.logger.debug(
+        `doppler.upsertServiceToken deleting existing slug=${t.slug}`
+      );
+      await deleteServiceToken(token, project, config, t.slug);
+    }
+  }
+  return createServiceToken(token, project, config, name, access);
 }
 
 export async function destroyProject(ctx: Ctx, slug: string): Promise<void> {

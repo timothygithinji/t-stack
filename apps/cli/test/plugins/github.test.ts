@@ -32,13 +32,14 @@ vi.mock("execa", () => ({
 import { Octokit } from "@octokit/rest";
 import sodium from "libsodium-wrappers";
 import {
-  configureDopplerOidc,
+  configureDopplerDeployToken,
   createRepo,
   setRepoSecret,
 } from "../../src/plugins/github.js";
 import { makeTestCtx } from "../_helpers.js";
 
 const GH = "https://api.github.com";
+const DOPPLER = "https://api.doppler.com/v3";
 
 interface RepoRow {
   owner: { login: string };
@@ -49,10 +50,14 @@ interface RepoRow {
 
 let repos: Map<string, RepoRow>;
 let createPostCount: number;
+let putSecretByName: Map<string, Record<string, unknown>>;
 let putSecretBody: Record<string, unknown> | undefined;
 let variablesByName: Map<string, string>;
 let patchedNames: string[];
 let testPublicKeyB64: string;
+let dopplerTokenListCalls: number;
+let dopplerTokenDeletedSlugs: string[];
+let dopplerTokenCreateBody: Record<string, unknown> | undefined;
 
 function repoKey(owner: string, name: string) {
   return `${owner}/${name}`.toLowerCase();
@@ -104,8 +109,10 @@ const server = setupServer(
   ),
   http.put(
     `${GH}/repos/:owner/:repo/actions/secrets/:name`,
-    async ({ request }) => {
-      putSecretBody = (await request.json()) as Record<string, unknown>;
+    async ({ params, request }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      putSecretBody = body;
+      putSecretByName.set(String(params.name), body);
       return new HttpResponse(null, { status: 201 });
     }
   ),
@@ -118,7 +125,36 @@ const server = setupServer(
       variablesByName.set(name, body.value);
       return new HttpResponse(null, { status: 204 });
     }
-  )
+  ),
+  http.get(`${DOPPLER}/configs/tokens`, () => {
+    dopplerTokenListCalls += 1;
+    return HttpResponse.json({
+      tokens: [
+        {
+          name: "github-actions-deploy",
+          slug: "existing-slug",
+          access: "read",
+        },
+      ],
+    });
+  }),
+  http.delete(`${DOPPLER}/configs/tokens/token`, async ({ request }) => {
+    const body = (await request.json()) as { slug?: string };
+    if (body.slug) {
+      dopplerTokenDeletedSlugs.push(body.slug);
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post(`${DOPPLER}/configs/tokens`, async ({ request }) => {
+    dopplerTokenCreateBody = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({
+      name: dopplerTokenCreateBody.name,
+      slug: "new-token-slug",
+      key: "dp.st.prd.fresh-secret-key",
+      access: dopplerTokenCreateBody.access,
+      expires_at: null,
+    });
+  })
 );
 
 beforeAll(async () => {
@@ -141,11 +177,15 @@ beforeEach(() => {
   repos = new Map();
   createPostCount = 0;
   putSecretBody = undefined;
+  putSecretByName = new Map();
   variablesByName = new Map();
   patchedNames = [];
+  dopplerTokenListCalls = 0;
+  dopplerTokenDeletedSlugs = [];
+  dopplerTokenCreateBody = undefined;
   execaMock.mockClear();
   execaMock.mockResolvedValue({
-    stdout: "ghp_test_token",
+    stdout: "dp.pt.test_doppler_pat",
     stderr: "",
     exitCode: 0,
   } as never);
@@ -187,38 +227,30 @@ describe("github.setRepoSecret", () => {
   });
 });
 
-describe("github.configureDopplerOidc", () => {
-  it("PATCHes three variables when the org carries a dopplerOidcIdentityId", async () => {
+describe("github.configureDopplerDeployToken", () => {
+  it("mints a Doppler service token and pushes it as the DOPPLER_TOKEN repo secret", async () => {
     const ctx = await makeTestCtx({
       projectName: "scout",
       org: {
         githubOwner: "fanya-labs",
         name: "fanya-labs",
         dopplerWorkplaceName: "fanya-labs",
-        dopplerOidcIdentityId: "id-12345",
       },
     });
     const gh = new Octokit({ auth: "ghp_test_token" });
-    await configureDopplerOidc(ctx, gh);
-    expect(patchedNames.sort()).toEqual(
-      ["DOPPLER_IDENTITY_ID", "DOPPLER_PROJECT_SLUG"].sort()
-    );
-    expect(variablesByName.get("DOPPLER_IDENTITY_ID")).toBe("id-12345");
-    expect(variablesByName.get("DOPPLER_PROJECT_SLUG")).toBe("scout");
-  });
+    await configureDopplerDeployToken(ctx, gh);
 
-  it("no-ops when neither org field nor env var is set", async () => {
-    const ctx = await makeTestCtx({
-      projectName: "scout",
-      org: {
-        githubOwner: "fanya-labs",
-        name: "fanya-labs",
-        dopplerWorkplaceName: "fanya-labs",
-      },
+    expect(dopplerTokenListCalls).toBe(1);
+    expect(dopplerTokenDeletedSlugs).toEqual(["existing-slug"]);
+    expect(dopplerTokenCreateBody).toMatchObject({
+      project: "scout",
+      config: "prd",
+      name: "github-actions-deploy",
+      access: "read",
     });
-    delete process.env.T_STACK_DOPPLER_OIDC_IDENTITY_ID_FANYA_LABS;
-    const gh = new Octokit({ auth: "ghp_test_token" });
-    await expect(configureDopplerOidc(ctx, gh)).resolves.toBeUndefined();
-    expect(patchedNames).toEqual([]);
+    const dopplerSecret = putSecretByName.get("DOPPLER_TOKEN");
+    expect(dopplerSecret).toBeDefined();
+    expect(dopplerSecret?.key_id).toBe("test-key-id");
+    expect(typeof dopplerSecret?.encrypted_value).toBe("string");
   });
 });

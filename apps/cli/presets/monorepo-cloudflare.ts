@@ -141,10 +141,10 @@ export default definePreset({
         },
       },
       {
-        id: "secrets.gha-oidc",
+        id: "secrets.gha-deploy-token",
         activate: (d) => d.git === true,
         async run(c) {
-          await github.configureDopplerOidc(c, ghClient);
+          await github.configureDopplerDeployToken(c, ghClient);
           return {};
         },
       },
