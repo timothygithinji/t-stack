@@ -1,0 +1,13 @@
+{
+  "name": "@t-stack/templates",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./files/*"
+  },
+  "files": ["files"],
+  "scripts": {
+    "build": "echo 'no build (static files only)'"
+  }
+}

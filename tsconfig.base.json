@@ -4,7 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2023"],
-    "types": ["node"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -17,15 +16,6 @@
     "skipLibCheck": true,
     "declaration": false,
     "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": ".",
     "allowImportingTsExtensions": false
-  },
-  "include": [
-    "src/**/*.ts",
-    "presets/**/*.ts",
-    "scripts/**/*.ts",
-    "test/**/*.ts"
-  ],
-  "exclude": ["node_modules", "dist", "templates"]
+  }
 }
