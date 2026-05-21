@@ -1,5 +1,14 @@
 # Changelog
 
+
+
+## [0.1.3](https://github.com/timothygithinji/t-stack/compare/v0.1.2...v0.1.3) (2026-05-21)
+
+### CI/CD
+
+* **release:** add bun run release script ([fb72640](https://github.com/timothygithinji/t-stack/commit/fb7264082ccc459dd465b562c98ec80bfb85fb24))
+* **release:** trigger automatically on push to main; migrate config to .release-it.ts ([f90231c](https://github.com/timothygithinji/t-stack/commit/f90231c08ac8ea6a119d895faf8107de49c5ca9f))
+
 ## [0.1.2](https://github.com/timothygithinji/t-stack/compare/v0.1.1...v0.1.2) (2026-05-20)
 
 ### Build System
