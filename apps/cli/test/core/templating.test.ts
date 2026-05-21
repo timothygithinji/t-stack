@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "pathe";
 import { describe, expect, it } from "vitest";
-import { renderString, renderTemplate } from "../../src/core/templating.js";
+import { renderString, renderTemplate } from "@t-stack/templating";
 import { makeTempDir } from "../_helpers.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -19,7 +19,8 @@
     "formatter": {
       "quoteStyle": "double",
       "semicolons": "always"
-    }
+    },
+    "globals": ["Bun"]
   },
   "assist": {
     "actions": {
