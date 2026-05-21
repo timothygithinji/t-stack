@@ -89,6 +89,96 @@ describe("runPluginGraph", () => {
     expect(observed.seen).toEqual({ workerUrl: "https://x.workers.dev" });
   });
 
+  it("skips a completed step with passing verify and does not re-run", async () => {
+    const ctx = await makeTestCtx();
+    const runFn = vi.fn(async () => ({ ran: "first" }));
+    const verifyFn = vi.fn(async () => true);
+
+    const steps: PluginStep[] = [
+      {
+        id: "neon.create",
+        activate: () => true,
+        run: runFn,
+        verify: verifyFn,
+      },
+    ];
+
+    // Prime state.json as if a prior run completed this step.
+    await ctx.state.set("neon.create", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { projectId: "p-existing" },
+    });
+
+    await runPluginGraph(ctx, steps);
+
+    expect(verifyFn).toHaveBeenCalledTimes(1);
+    expect(runFn).not.toHaveBeenCalled();
+  });
+
+  it("auto-recreates in --yes mode when verify reports missing", async () => {
+    const ctx = await makeTestCtx();
+    const runFn = vi.fn(async () => ({ projectId: "p-fresh" }));
+    const recreateModes: Array<string | undefined> = [];
+
+    const steps: PluginStep[] = [
+      {
+        id: "neon.create",
+        activate: () => true,
+        async run(c) {
+          recreateModes.push(c.recreateMode);
+          return runFn();
+        },
+        verify: async () => false,
+      },
+    ];
+
+    await ctx.state.set("neon.create", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { projectId: "p-gone" },
+    });
+
+    const deps = await runPluginGraph(ctx, steps);
+
+    expect(runFn).toHaveBeenCalledTimes(1);
+    // --yes default leaves recreateMode unset so the plugin runs its standard
+    // lookup-first create path; the verdict is communicated via state-removal.
+    expect(recreateModes).toEqual([undefined]);
+    expect(deps["neon.create"]).toEqual({ projectId: "p-fresh" });
+    await ctx.state.read();
+    const entry = ctx.state.get("neon.create");
+    expect(entry?.refs?.projectId).toBe("p-fresh");
+  });
+
+  it("does NOT call verify when refs contain redacted sentinels", async () => {
+    const ctx = await makeTestCtx();
+    const verifyFn = vi.fn(async () => true);
+    const runFn = vi.fn(async () => ({ secret: "k1" }));
+
+    const steps: PluginStep[] = [
+      {
+        id: "trigger.project",
+        activate: () => true,
+        run: runFn,
+        verify: verifyFn,
+      },
+    ];
+
+    await ctx.state.set("trigger.project", {
+      status: "completed",
+      at: new Date().toISOString(),
+      refs: { projectRef: "proj_x", secretKey: "<redacted>" },
+    });
+
+    await runPluginGraph(ctx, steps);
+
+    // Redacted refs already force re-run via the step runner; verify would be
+    // redundant — the gate must short-circuit.
+    expect(verifyFn).not.toHaveBeenCalled();
+    expect(runFn).toHaveBeenCalledTimes(1);
+  });
+
   it("records activated step ids in state.json", async () => {
     const ctx = await makeTestCtx({
       decisions: { cloudProvider: "none", databaseHost: "neon" },

@@ -45,6 +45,7 @@ export default definePreset({
           await doppler.createProject(c);
           return {};
         },
+        verify: doppler.verifyProjectExists,
       },
       {
         id: "github.repo",
@@ -52,6 +53,7 @@ export default definePreset({
         async run(c) {
           return await github.createRepo(c);
         },
+        verify: github.verifyRepoExists,
       },
       {
         id: "neon.create",
@@ -59,6 +61,7 @@ export default definePreset({
         async run(c) {
           return await neon.create(c);
         },
+        verify: neon.verifyExists,
       },
       {
         id: "turso.create",
@@ -73,6 +76,7 @@ export default definePreset({
         async run(c) {
           return await trigger.createProject(c);
         },
+        verify: trigger.verifyExists,
       },
       {
         id: "doppler.seedSecrets",

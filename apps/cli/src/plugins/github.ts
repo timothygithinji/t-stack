@@ -42,7 +42,32 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
   const gh = await createGithubClient();
   const owner = ctx.org.githubOwner;
   const name = ctx.projectName;
-  ctx.logger.debug(`github.createRepo owner=${owner} name=${name}`);
+  ctx.logger.debug(
+    `github.createRepo owner=${owner} name=${name} recreateMode=${ctx.recreateMode ?? "default"}`
+  );
+
+  // The verify-on-skip flow may ask us to take a specific path. "adopt" =
+  // require the repo to already exist; "new" = fail loudly if it does
+  // (GitHub doesn't allow same-name dup so we honor that by erroring).
+  if (ctx.recreateMode === "adopt") {
+    try {
+      const existing = await gh.rest.repos.get({ owner, repo: name });
+      return {
+        owner: existing.data.owner.login,
+        name: existing.data.name,
+        htmlUrl: existing.data.html_url,
+        sshUrl: existing.data.ssh_url,
+      };
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 404) {
+        throw new Error(
+          `github.createRepo asked to adopt ${owner}/${name} but it doesn't exist.`
+        );
+      }
+      throw err;
+    }
+  }
 
   let me: string | undefined;
   try {
@@ -76,6 +101,13 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
     const status = (err as { status?: number }).status;
     const message = (err as Error).message ?? "";
     if (status === 422 && /already exists/i.test(message)) {
+      // "new" mode requested but the repo is already there — surface that
+      // rather than silently adopting.
+      if (ctx.recreateMode === "new") {
+        throw new Error(
+          `github.createRepo asked to create a new repo ${owner}/${name} but it already exists. Delete it on GitHub first or pick a different name.`
+        );
+      }
       ctx.logger.debug(
         `github.createRepo repo exists, fetching ${owner}/${name}`
       );
@@ -86,6 +118,33 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
         htmlUrl: existing.data.html_url,
         sshUrl: existing.data.ssh_url,
       };
+    }
+    throw err;
+  }
+}
+
+/**
+ * Liveness check: the stored owner/name still resolves to a repo. Any 404
+ * means it's been deleted or transferred out — return false. Other errors
+ * (auth, network) bubble up so the runner can trust state by default.
+ */
+export async function verifyRepoExists(
+  _ctx: Ctx,
+  refs: Record<string, unknown>
+): Promise<boolean> {
+  const owner = refs.owner;
+  const name = refs.name;
+  if (typeof owner !== "string" || typeof name !== "string") {
+    return false;
+  }
+  const gh = await createGithubClient();
+  try {
+    await gh.rest.repos.get({ owner, repo: name });
+    return true;
+  } catch (err) {
+    const status = (err as { status?: number }).status;
+    if (status === 404) {
+      return false;
     }
     throw err;
   }

@@ -188,23 +188,34 @@ async function fetchConnectionString(
 
 export async function create(ctx: Ctx): Promise<NeonRefs> {
   const name = ctx.projectName;
-  ctx.logger.debug(`neon.create name=${name}`);
+  ctx.logger.debug(
+    `neon.create name=${name} recreateMode=${ctx.recreateMode ?? "default"}`
+  );
 
   // Neon allows multiple projects with the same name and doesn't surface a
   // "already exists" error on duplicate creation, so a naive POST would create
   // a sibling project on every retry. Look up by name first (case-insensitive)
-  // to stay idempotent across re-runs.
+  // to stay idempotent across re-runs. The recreateMode hook lets the
+  // verify-on-skip flow force a different path on demand.
   let projectId: string | undefined;
   let projectName = name;
   let branchId: string | undefined;
 
-  const existing = await findExistingProject(ctx, name);
+  const skipLookup = ctx.recreateMode === "new";
+  const existing = skipLookup
+    ? undefined
+    : await findExistingProject(ctx, name);
   if (existing) {
     ctx.logger.debug(`neon.create project ${name} already exists, reusing`);
     projectId = existing.id;
     projectName = existing.name;
     branchId = existing.default_branch_id;
   } else {
+    if (ctx.recreateMode === "adopt") {
+      throw new Error(
+        `neon.create asked to adopt an existing project named "${name}" but none was found in Neon.`
+      );
+    }
     // loadConfig doesn't apply Zod defaults, so legacy configs that pre-date
     // databaseRegion will have `undefined` here at runtime even though the
     // type says string. The conditional below preserves that path.
@@ -238,6 +249,47 @@ export async function create(ctx: Ctx): Promise<NeonRefs> {
 
   const connectionString = await fetchConnectionString(ctx, projectId);
   return { projectId, projectName, branchId, connectionString };
+}
+
+/**
+ * Liveness check for the plugin-graph verify-on-skip flow. Returns false when
+ * the Neon project recorded in state.json has been deleted out-of-band.
+ *
+ * Implementation: hit `neonctl projects get` for the stored `projectId`.
+ * neonctl exits non-zero with "project not found" in stderr when missing —
+ * any other failure (auth, network) re-throws so the runner can fall back
+ * to trusting state rather than treating it as a guaranteed miss.
+ */
+export async function verifyExists(
+  ctx: Ctx,
+  refs: Record<string, unknown>
+): Promise<boolean> {
+  const projectId = refs.projectId;
+  if (typeof projectId !== "string" || projectId.length === 0) {
+    return false;
+  }
+  try {
+    await execa(
+      "neonctl",
+      [
+        "projects",
+        "get",
+        "--project-id",
+        projectId,
+        ...orgArgs(ctx),
+        "--output",
+        "json",
+      ],
+      { stdio: "pipe", env: neonEnv(ctx) }
+    );
+    return true;
+  } catch (err) {
+    const stderr = (err as { stderr?: string }).stderr ?? "";
+    if (/not found|does not exist|no such/i.test(stderr)) {
+      return false;
+    }
+    throw err;
+  }
 }
 
 export async function destroy(ctx: Ctx, refs: NeonRefs): Promise<void> {

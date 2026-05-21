@@ -31,6 +31,12 @@ export interface StateStore {
   markRunning(stepId: string): Promise<void>;
   markCompleted(stepId: string, refs?: Record<string, unknown>): Promise<void>;
   markFailed(stepId: string, error: unknown): Promise<void>;
+  /**
+   * Delete a step record entirely. Used by the verify-on-skip flow when the
+   * user picks "remove from state" or "recreate" — the step then runs fresh
+   * on its next invocation instead of short-circuiting via stale refs.
+   */
+  remove(stepId: string): Promise<void>;
 }
 
 const LOCK_OPTIONS = { retries: { retries: 5, factor: 2 } } as const;
@@ -133,6 +139,11 @@ export function createStateStore(stateFile: string): StateStore {
           at: new Date().toISOString(),
           error: toErrorRecord(error),
         };
+      });
+    },
+    async remove(stepId) {
+      await withLock((state) => {
+        delete state.steps[stepId];
       });
     },
   };

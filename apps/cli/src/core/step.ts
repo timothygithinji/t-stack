@@ -15,7 +15,7 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function hasRedactedValues(value: unknown): boolean {
+export function hasRedactedValues(value: unknown): boolean {
   if (value === REDACTED) {
     return true;
   }

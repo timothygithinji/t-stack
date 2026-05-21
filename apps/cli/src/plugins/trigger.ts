@@ -107,16 +107,25 @@ export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
   }
 
   ctx.logger.debug(
-    `trigger.createProject name=${ctx.projectName} orgSlug=${ctx.org.triggerOrgSlug}`
+    `trigger.createProject name=${ctx.projectName} orgSlug=${ctx.org.triggerOrgSlug} recreateMode=${ctx.recreateMode ?? "default"}`
   );
 
   // Trigger.dev's POST endpoint allows duplicate names (returns 200 with a
   // disambiguated slug), so we must look up by name first to stay idempotent
   // across re-runs. Match is case-insensitive to avoid creating a sibling
-  // project that only differs in casing.
-  let project = await findProjectByName(ctx, ctx.projectName);
+  // project that only differs in casing. recreateMode lets the verify-on-skip
+  // flow force a particular path.
+  const skipLookup = ctx.recreateMode === "new";
+  let project = skipLookup
+    ? undefined
+    : await findProjectByName(ctx, ctx.projectName);
 
   if (!project) {
+    if (ctx.recreateMode === "adopt") {
+      throw new Error(
+        `trigger.createProject asked to adopt an existing project named "${ctx.projectName}" but none was found in Trigger.dev org "${ctx.org.triggerOrgSlug}".`
+      );
+    }
     const created = await ofetch<TriggerProject | { project?: TriggerProject }>(
       `${TRIGGER_API_BASE}/orgs/${ctx.org.triggerOrgSlug}/projects`,
       {
@@ -136,6 +145,36 @@ export async function createProject(ctx: Ctx): Promise<TriggerRefs> {
   }
   const secretKey = await fetchProdSecretKey(ctx, projectRef);
   return { projectRef, slug: project.slug, secretKey };
+}
+
+/**
+ * Liveness check: the stored `projectRef` (e.g. `proj_xxx`) is still listable
+ * in the active Trigger.dev org. We reuse `findProjectByName` to avoid an
+ * extra endpoint and to honor case-insensitive matching consistent with create.
+ */
+export async function verifyExists(
+  ctx: Ctx,
+  refs: Record<string, unknown>
+): Promise<boolean> {
+  const projectRef = refs.projectRef;
+  if (typeof projectRef !== "string" || projectRef.length === 0) {
+    return false;
+  }
+  // Hit the env endpoint we already use during create; 404 there means the
+  // project (or at least its prod env) is gone.
+  try {
+    await ofetch(`${TRIGGER_API_BASE}/projects/${projectRef}/prod`, {
+      method: "GET",
+      headers: authHeaders(ctx.tokens.triggerAccessToken),
+    });
+    return true;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404 || status === 400) {
+      return false;
+    }
+    throw err;
+  }
 }
 
 export async function syncEnvVars(

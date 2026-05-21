@@ -153,7 +153,22 @@ export async function createProject(
   const slug = slugify(name);
   const description = opts.description ?? `t-stack project ${name}`;
 
-  ctx.logger.debug(`doppler.createProject name=${name}`);
+  ctx.logger.debug(
+    `doppler.createProject name=${name} recreateMode=${ctx.recreateMode ?? "default"}`
+  );
+
+  // "adopt" mode short-circuits to the lookup path; "new" mode skips lookup
+  // entirely so a fresh create is attempted. Doppler rejects duplicate slugs
+  // server-side, so "new" will throw rather than silently dup.
+  if (ctx.recreateMode === "adopt") {
+    const existing = await findProjectBySlug(token, slug);
+    if (!existing) {
+      throw new Error(
+        `doppler.createProject asked to adopt project "${slug}" but it was not found in the workplace.`
+      );
+    }
+    return { slug: existing.slug, name: existing.name };
+  }
 
   try {
     const res = await ofetch<ProjectCreateResp>(
@@ -172,6 +187,11 @@ export async function createProject(
   } catch (err) {
     const status = (err as { response?: { status?: number } }).response?.status;
     if (status === 409 || status === 422 || status === 400) {
+      if (ctx.recreateMode === "new") {
+        throw new Error(
+          `doppler.createProject asked to create a fresh "${slug}" but Doppler reports it already exists. Delete it in the dashboard first or pick a different name.`
+        );
+      }
       const existing = await findProjectBySlug(token, slug);
       if (existing) {
         ctx.logger.debug(`doppler.createProject reusing ${existing.slug}`);
@@ -180,6 +200,21 @@ export async function createProject(
     }
     throw err;
   }
+}
+
+/**
+ * Liveness check for the verify-on-skip flow. The `doppler.project` step
+ * stores empty refs, so we derive the slug from ctx.projectName (same
+ * derivation that `createProject` uses).
+ */
+export async function verifyProjectExists(
+  ctx: Ctx,
+  _refs: Record<string, unknown>
+): Promise<boolean> {
+  const token = await getCliToken(ctx);
+  const slug = slugify(ctx.projectName);
+  const existing = await findProjectBySlug(token, slug);
+  return existing !== undefined;
 }
 
 async function listConfigs(

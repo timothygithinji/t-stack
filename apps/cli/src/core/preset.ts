@@ -47,6 +47,20 @@ export interface Ctx {
   choice<T = unknown>(id: string): T;
   /** True when --yes was passed. */
   nonInteractive: boolean;
+  /**
+   * Set by the plugin-graph runner before invoking a step's `run` when the
+   * user has asked for a forced re-creation via the verify-on-skip prompt.
+   *
+   *   - "adopt" — the plugin must locate an existing resource by name; if
+   *     none is found, it should throw rather than create a fresh one.
+   *   - "new"   — the plugin should skip its adopt path entirely and create
+   *     a brand-new resource even if a same-named one exists.
+   *
+   * `undefined` means "default": plugins behave as they always have
+   * (lookup-first, create if missing). Plugins should treat this field as
+   * a per-step input and not assume it sticks across step boundaries.
+   */
+  recreateMode?: "adopt" | "new";
 }
 
 export interface PresetDef {
