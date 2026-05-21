@@ -43,7 +43,7 @@ function setHandlers(h: Handler[]) {
   state.handlers = h;
 }
 
-import { create } from "../../src/plugins/turso.js";
+import { create, verifyExists } from "../../src/plugins/turso.js";
 import { makeTestCtx } from "../_helpers.js";
 
 beforeEach(() => {
@@ -73,14 +73,21 @@ function isTokensCreate(c: ExecaCall) {
 }
 
 describe("turso.create", () => {
-  it("creates a db, fetches its url, and builds the connectionString", async () => {
+  it("creates a db when the lookup probe reports it missing", async () => {
+    let lookupCalls = 0;
     setHandlers([
       (c) => {
+        if (isShowUrl(c)) {
+          lookupCalls += 1;
+          if (lookupCalls === 1) {
+            // First call is the lookup probe — DB doesn't exist yet.
+            return { throws: true, stderr: "database not found" };
+          }
+          // Subsequent call is the post-create URL fetch.
+          return { stdout: "libsql://demo-fanya.turso.io" };
+        }
         if (isCreate(c)) {
           return { stdout: "{}" };
-        }
-        if (isShowUrl(c)) {
-          return { stdout: "libsql://demo-fanya.turso.io" };
         }
         if (isTokensCreate(c)) {
           return { stdout: "tok_abc" };
@@ -98,14 +105,14 @@ describe("turso.create", () => {
     );
   });
 
-  it("falls back when create reports already exists", async () => {
+  it("adopts an existing db without calling create", async () => {
     setHandlers([
       (c) => {
-        if (isCreate(c)) {
-          return { throws: true, stderr: "database already exists" };
-        }
         if (isShowUrl(c)) {
           return { stdout: "libsql://demo-fanya.turso.io" };
+        }
+        if (isCreate(c)) {
+          throw new Error("create should not be called when db exists");
         }
         if (isTokensCreate(c)) {
           return { stdout: "tok_existing" };
@@ -117,21 +124,17 @@ describe("turso.create", () => {
     const refs = await create(ctx);
     expect(refs.url).toBe("libsql://demo-fanya.turso.io");
     expect(refs.connectionString).toContain("authToken=tok_existing");
+    expect(state.calls.some(isCreate)).toBe(false);
   });
 
-  it("is idempotent — second call returns equivalent refs", async () => {
-    let created = false;
+  it("is idempotent — second call returns equivalent refs without re-creating", async () => {
     setHandlers([
       (c) => {
-        if (isCreate(c)) {
-          if (!created) {
-            created = true;
-            return { stdout: "{}" };
-          }
-          return { throws: true, stderr: "database already exists" };
-        }
         if (isShowUrl(c)) {
           return { stdout: "libsql://demo-fanya.turso.io" };
+        }
+        if (isCreate(c)) {
+          throw new Error("create should not be called on idempotent retry");
         }
         if (isTokensCreate(c)) {
           return { stdout: "tok_stable" };
@@ -144,7 +147,40 @@ describe("turso.create", () => {
     const b = await create(ctx);
     expect(b.databaseName).toBe(a.databaseName);
     expect(b.url).toBe(a.url);
-    // Tokens may differ in real life; we mock the same token here.
     expect(b.connectionString).toBe(a.connectionString);
+    expect(state.calls.filter(isCreate)).toHaveLength(0);
+  });
+});
+
+describe("turso.verifyExists", () => {
+  it("returns true when `turso db show --url` succeeds", async () => {
+    setHandlers([
+      (c) => {
+        if (isShowUrl(c)) {
+          return { stdout: "libsql://demo-fanya.turso.io" };
+        }
+        return;
+      },
+    ]);
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    expect(await verifyExists(ctx, { databaseName: "demo" })).toBe(true);
+  });
+
+  it("returns false when the CLI reports the db is gone", async () => {
+    setHandlers([
+      (c) => {
+        if (isShowUrl(c)) {
+          return { throws: true, stderr: "database not found" };
+        }
+        return;
+      },
+    ]);
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    expect(await verifyExists(ctx, { databaseName: "demo" })).toBe(false);
+  });
+
+  it("returns false when refs lack a databaseName", async () => {
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    expect(await verifyExists(ctx, {})).toBe(false);
   });
 });

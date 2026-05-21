@@ -6,6 +6,7 @@ import {
   listOrgs,
   listProjects,
   syncEnvVars,
+  verifyExists,
 } from "../../src/plugins/trigger.js";
 import { makeTestCtx } from "../_helpers.js";
 
@@ -339,5 +340,40 @@ describe("trigger plugin (org-scoped)", () => {
     await expect(createProject(ctx)).rejects.toThrow(
       /no production secret key/
     );
+  });
+
+  describe("verifyExists", () => {
+    it("returns true when the prod env endpoint resolves", async () => {
+      server.use(
+        http.get(PROD_KEY_URL, () =>
+          HttpResponse.json({
+            apiKey: "tr_prod_x",
+            name: "demo",
+            apiUrl: "https://api.trigger.dev",
+            projectId: "p1",
+          })
+        )
+      );
+      const ctx = await makeTestCtx({ projectName: "demo" });
+      const alive = await verifyExists(ctx, { projectRef: "proj_alive" });
+      expect(alive).toBe(true);
+    });
+
+    it("returns false on 404", async () => {
+      server.use(
+        http.get(PROD_KEY_URL, () =>
+          HttpResponse.json({ error: "not found" }, { status: 404 })
+        )
+      );
+      const ctx = await makeTestCtx({ projectName: "demo" });
+      const alive = await verifyExists(ctx, { projectRef: "proj_gone" });
+      expect(alive).toBe(false);
+    });
+
+    it("returns false when projectRef is missing from refs", async () => {
+      const ctx = await makeTestCtx({ projectName: "demo" });
+      const alive = await verifyExists(ctx, {});
+      expect(alive).toBe(false);
+    });
   });
 });

@@ -48,7 +48,7 @@ function setHandlers(h: Handler[]) {
   state.handlers = h;
 }
 
-import { create } from "../../src/plugins/neon.js";
+import { create, verifyExists } from "../../src/plugins/neon.js";
 import { makeTestCtx } from "../_helpers.js";
 
 beforeEach(() => {
@@ -217,5 +217,66 @@ describe("neon.create", () => {
     expect(second.connectionString).toBe(first.connectionString);
     expect(second.projectId).toBe(first.projectId);
     expect(calls.filter(isCreateCall)).toHaveLength(0);
+  });
+});
+
+describe("neon.verifyExists", () => {
+  it("returns true when neonctl projects get succeeds", async () => {
+    setHandlers([
+      (c) => {
+        if (
+          c.bin === "neonctl" &&
+          c.args[0] === "projects" &&
+          c.args[1] === "get"
+        ) {
+          return { stdout: JSON.stringify({ project: { id: "p1" } }) };
+        }
+        return;
+      },
+    ]);
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    const alive = await verifyExists(ctx, { projectId: "p1" });
+    expect(alive).toBe(true);
+  });
+
+  it("returns false when neonctl reports the project missing", async () => {
+    setHandlers([
+      (c) => {
+        if (
+          c.bin === "neonctl" &&
+          c.args[0] === "projects" &&
+          c.args[1] === "get"
+        ) {
+          return { throws: true, stderr: "Project not found: p-gone" };
+        }
+        return;
+      },
+    ]);
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    const alive = await verifyExists(ctx, { projectId: "p-gone" });
+    expect(alive).toBe(false);
+  });
+
+  it("re-throws transient (non-404) failures so the gate can trust state", async () => {
+    setHandlers([
+      (c) => {
+        if (
+          c.bin === "neonctl" &&
+          c.args[0] === "projects" &&
+          c.args[1] === "get"
+        ) {
+          return { throws: true, stderr: "ECONNRESET" };
+        }
+        return;
+      },
+    ]);
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    await expect(verifyExists(ctx, { projectId: "p1" })).rejects.toThrow();
+  });
+
+  it("returns false when refs lack a projectId string", async () => {
+    const ctx = await makeTestCtx({ projectName: "demo" });
+    const alive = await verifyExists(ctx, {});
+    expect(alive).toBe(false);
   });
 });

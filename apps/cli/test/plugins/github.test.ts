@@ -35,6 +35,7 @@ import {
   configureDopplerDeployToken,
   createRepo,
   setRepoSecret,
+  verifyRepoExists,
 } from "../../src/plugins/github.js";
 import { makeTestCtx } from "../_helpers.js";
 
@@ -254,5 +255,45 @@ describe("github.configureDopplerDeployToken", () => {
     expect(dopplerSecret).toBeDefined();
     expect(dopplerSecret?.key_id).toBe("test-key-id");
     expect(typeof dopplerSecret?.encrypted_value).toBe("string");
+  });
+});
+
+describe("github.verifyRepoExists", () => {
+  it("returns true when the repo resolves", async () => {
+    const owner = "fanya-labs";
+    const name = "scout";
+    repos.set(repoKey(owner, name), {
+      owner: { login: owner },
+      name,
+      html_url: `https://github.com/${owner}/${name}`,
+      ssh_url: `git@github.com:${owner}/${name}.git`,
+    });
+    const ctx = await makeTestCtx({
+      projectName: name,
+      org: { githubOwner: owner, name: owner },
+    });
+    const alive = await verifyRepoExists(ctx, { owner, name });
+    expect(alive).toBe(true);
+  });
+
+  it("returns false on 404 (repo deleted or transferred)", async () => {
+    const ctx = await makeTestCtx({
+      projectName: "scout",
+      org: { githubOwner: "fanya-labs", name: "fanya-labs" },
+    });
+    const alive = await verifyRepoExists(ctx, {
+      owner: "fanya-labs",
+      name: "scout",
+    });
+    expect(alive).toBe(false);
+  });
+
+  it("returns false when refs lack owner/name", async () => {
+    const ctx = await makeTestCtx({
+      projectName: "scout",
+      org: { githubOwner: "fanya-labs", name: "fanya-labs" },
+    });
+    expect(await verifyRepoExists(ctx, {})).toBe(false);
+    expect(await verifyRepoExists(ctx, { owner: "x" })).toBe(false);
   });
 });

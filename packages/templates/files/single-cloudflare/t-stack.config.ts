@@ -1,6 +1,5 @@
 export default {
   org: "{{org.name}}",
-  archetype: "{{archetype}}",
   projectName: "{{projectName}}",
   domain: "{{domain}}",
   structure: "{{d.structure}}",
@@ -11,7 +10,6 @@ export default {
   backend: "{{d.backend}}",
   docs: "{{d.docs}}",
   api: "{{d.api}}",
-  database: "{{d.database}}",
   databaseHost: "{{d.databaseHost}}",
   databaseRegion: "{{d.databaseRegion}}",
   orm: "{{d.orm}}",

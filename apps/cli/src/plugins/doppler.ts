@@ -21,11 +21,6 @@ export interface DopplerConfig {
   locked: boolean;
 }
 
-interface SeedRefs {
-  db?: { connectionString?: string } | undefined;
-  trg?: { secretKey?: string } | undefined;
-}
-
 interface ConfigsListResp {
   configs?: DopplerConfig[];
 }
@@ -321,16 +316,21 @@ export async function setProjectSecret(
   }
 }
 
-export async function seedSecrets(ctx: Ctx, refs: SeedRefs): Promise<void> {
+/**
+ * Seed Doppler with secrets owned by the orchestrator rather than by an
+ * individual resource plugin. Today that's just `HOOKDECK_API_KEY` — the
+ * user supplies it at init and we persist it here so the deploy workflow
+ * can pull it from Doppler later.
+ *
+ * `DATABASE_URL` and `TRIGGER_SECRET_KEY` used to flow through this step
+ * but their owning plugins (`neon.create`, `turso.create`,
+ * `trigger.createProject`) now push them directly on every run. Keeping
+ * that logic here too would duplicate writes without buying anything.
+ */
+export async function seedOrchestratorSecrets(ctx: Ctx): Promise<void> {
   const projectSlug = slugify(ctx.projectName);
 
   const entries: Array<{ key: string; value: string }> = [];
-  if (refs.db?.connectionString) {
-    entries.push({ key: "DATABASE_URL", value: refs.db.connectionString });
-  }
-  if (ctx.decisions.trigger && refs.trg?.secretKey) {
-    entries.push({ key: "TRIGGER_SECRET_KEY", value: refs.trg.secretKey });
-  }
   if (ctx.decisions.hookdeck && ctx.tokens.hookdeckApiKey) {
     entries.push({ key: "HOOKDECK_API_KEY", value: ctx.tokens.hookdeckApiKey });
   }

@@ -33,6 +33,7 @@ import {
   createProject,
   ensureConfig,
   setSecret,
+  verifyProjectExists,
 } from "../../src/plugins/doppler.js";
 import { makeTestCtx } from "../_helpers.js";
 
@@ -219,5 +220,20 @@ describe("doppler.setSecret", () => {
         (c[1] as string[]).some((a) => a.includes("postgres://x"))
     );
     expect(argvWithValue).toBeUndefined();
+  });
+});
+
+describe("doppler.verifyProjectExists", () => {
+  it("returns true when a project with the slugified projectName exists", async () => {
+    const ctx = await makeTestCtx({ projectName: "demo-app" });
+    await createProject(ctx);
+    const alive = await verifyProjectExists(ctx, {});
+    expect(alive).toBe(true);
+  });
+
+  it("returns false when no Doppler project matches the slug", async () => {
+    const ctx = await makeTestCtx({ projectName: "demo-app" });
+    const alive = await verifyProjectExists(ctx, {});
+    expect(alive).toBe(false);
   });
 });

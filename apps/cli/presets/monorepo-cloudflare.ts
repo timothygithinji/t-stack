@@ -98,16 +98,14 @@ export default definePreset({
         ],
       },
       {
+        // Step id kept for state.json compatibility with existing projects.
+        // The function used to seed db + trigger secrets here too, but those
+        // now flow directly from their owning plugins (neon/turso/trigger).
+        // This step is now only meaningful when hookdeck is enabled.
         id: "doppler.seedSecrets",
-        activate: () => true,
-        async run(c, deps) {
-          const db = (deps["neon.create"] ?? deps["turso.create"]) as
-            | { connectionString?: string }
-            | undefined;
-          const trg = deps["trigger.project"] as
-            | { secretKey?: string }
-            | undefined;
-          await doppler.seedSecrets(c, { db, trg });
+        activate: (d) => d.hookdeck === true,
+        async run(c) {
+          await doppler.seedOrchestratorSecrets(c);
           return {};
         },
         invalidates: [
@@ -122,6 +120,12 @@ export default definePreset({
         async run(c) {
           return await cf.pulumiUp(c);
         },
+        verify: cf.verifyExists,
+        invalidates: [
+          "cloudflare.patchWrangler",
+          "secrets.cloudflare",
+          "cloudflare.deploy",
+        ],
       },
       {
         id: "cloudflare.patchWrangler",

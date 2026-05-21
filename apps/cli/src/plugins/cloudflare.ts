@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { parse as parseJsonc, stringify as stringifyJsonc } from "comment-json";
 import { execa } from "execa";
+import { ofetch } from "ofetch";
 import { join } from "pathe";
 import {
   pulumiDestroy as adapterDestroy,
@@ -9,6 +10,8 @@ import {
 } from "../adapters/pulumi.js";
 import type { Ctx } from "../core/preset.ts";
 import { resolveZoneForDomain } from "../core/zones.js";
+
+const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 
 export interface CloudflareOutputs {
   kvNamespaceId: string;
@@ -86,6 +89,42 @@ export async function pulumiUp(ctx: Ctx): Promise<CloudflareOutputs> {
     result.accessAppId = accessAppId;
   }
   return result;
+}
+
+/**
+ * Liveness check for the plugin-graph verify-on-skip flow. Probes the KV
+ * namespace recorded in state.json — if it's gone, the Pulumi stack was
+ * likely torn down out-of-band (Cloudflare dashboard, manual `pulumi
+ * destroy`, etc.) and we should re-run to rebuild it.
+ *
+ * KV is the cheapest of the four resources `pulumiUp` creates to probe and
+ * is always present (KV is unconditional in the Pulumi program), so it's a
+ * reliable canary. R2 buckets and Workers also exist post-deploy but their
+ * API surfaces are slightly more involved.
+ */
+export async function verifyExists(
+  ctx: Ctx,
+  refs: Record<string, unknown>
+): Promise<boolean> {
+  const id = refs.kvNamespaceId;
+  const token = ctx.tokens.cloudflareApiToken;
+  const accountId = ctx.org.cloudflareAccountId;
+  if (typeof id !== "string" || id.length === 0 || !token || !accountId) {
+    return false;
+  }
+  try {
+    await ofetch(
+      `${CF_API_BASE}/accounts/${accountId}/storage/kv/namespaces/${id}`,
+      { method: "GET", headers: { Authorization: `Bearer ${token}` } }
+    );
+    return true;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) {
+      return false;
+    }
+    throw err;
+  }
 }
 
 interface WranglerConfig {
