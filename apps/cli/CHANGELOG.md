@@ -2,6 +2,12 @@
 
 
 
+## [0.3.6](https://github.com/timothygithinji/t-stack/compare/v0.3.5...v0.3.6) (2026-05-21)
+
+### Bug Fixes
+
+* **templates:** write full decision set to scaffolded t-stack.config.ts ([6469a94](https://github.com/timothygithinji/t-stack/commit/6469a945235654dcebb3d3cf3574f400108a0514))
+
 ## [0.3.5](https://github.com/timothygithinji/t-stack/compare/v0.3.4...v0.3.5) (2026-05-21)
 
 ### Bug Fixes
