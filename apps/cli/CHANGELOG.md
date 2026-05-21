@@ -2,6 +2,12 @@
 
 
 
+## [0.3.2](https://github.com/timothygithinji/t-stack/compare/v0.3.1...v0.3.2) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** build dist/ during prepack so published tarball is runnable ([9b2887b](https://github.com/timothygithinji/t-stack/commit/9b2887b422d7affde442fbe45d8fd3c4cf883985))
+
 ## [0.3.1](https://github.com/timothygithinji/t-stack/compare/v0.3.0...v0.3.1) (2026-05-21)
 
 ### Bug Fixes
