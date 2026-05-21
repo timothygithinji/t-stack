@@ -52,12 +52,8 @@ interface TokensListResp {
 }
 
 interface TokenCreateResp {
-  /** Body shape on POST /v3/configs/tokens — the create response flattens the token fields. */
-  name?: string;
-  slug?: string;
-  key?: string;
-  expires_at?: string | null;
-  access?: string;
+  /** POST /v3/configs/config/tokens wraps the token object. */
+  token?: DopplerServiceToken;
 }
 
 /** Per-org scope directory the user `doppler login --scope`'d against. */
@@ -362,7 +358,7 @@ async function listServiceTokens(
   config: string
 ): Promise<DopplerServiceToken[]> {
   const res = await ofetch<TokensListResp>(
-    `${DOPPLER_API_BASE}/configs/tokens`,
+    `${DOPPLER_API_BASE}/configs/config/tokens`,
     {
       method: "GET",
       headers: authHeaders(token),
@@ -378,7 +374,7 @@ async function deleteServiceToken(
   config: string,
   slug: string
 ): Promise<void> {
-  await ofetch(`${DOPPLER_API_BASE}/configs/tokens/token`, {
+  await ofetch(`${DOPPLER_API_BASE}/configs/config/tokens/token`, {
     method: "DELETE",
     headers: authHeaders(token),
     body: { project, config, slug },
@@ -393,19 +389,20 @@ async function createServiceToken(
   access: "read" | "read/write"
 ): Promise<string> {
   const res = await ofetch<TokenCreateResp>(
-    `${DOPPLER_API_BASE}/configs/tokens`,
+    `${DOPPLER_API_BASE}/configs/config/tokens`,
     {
       method: "POST",
       headers: authHeaders(token),
       body: { project, config, name, access },
     }
   );
-  if (!res.key) {
+  const key = res.token?.key;
+  if (!key) {
     throw new Error(
-      "Doppler service token create response did not include `key`"
+      "Doppler service token create response did not include `token.key`"
     );
   }
-  return res.key;
+  return key;
 }
 
 /**

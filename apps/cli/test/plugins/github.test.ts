@@ -126,7 +126,7 @@ const server = setupServer(
       return new HttpResponse(null, { status: 204 });
     }
   ),
-  http.get(`${DOPPLER}/configs/tokens`, () => {
+  http.get(`${DOPPLER}/configs/config/tokens`, () => {
     dopplerTokenListCalls += 1;
     return HttpResponse.json({
       tokens: [
@@ -138,21 +138,23 @@ const server = setupServer(
       ],
     });
   }),
-  http.delete(`${DOPPLER}/configs/tokens/token`, async ({ request }) => {
+  http.delete(`${DOPPLER}/configs/config/tokens/token`, async ({ request }) => {
     const body = (await request.json()) as { slug?: string };
     if (body.slug) {
       dopplerTokenDeletedSlugs.push(body.slug);
     }
     return new HttpResponse(null, { status: 204 });
   }),
-  http.post(`${DOPPLER}/configs/tokens`, async ({ request }) => {
+  http.post(`${DOPPLER}/configs/config/tokens`, async ({ request }) => {
     dopplerTokenCreateBody = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({
-      name: dopplerTokenCreateBody.name,
-      slug: "new-token-slug",
-      key: "dp.st.prd.fresh-secret-key",
-      access: dopplerTokenCreateBody.access,
-      expires_at: null,
+      token: {
+        name: dopplerTokenCreateBody.name,
+        slug: "new-token-slug",
+        key: "dp.st.prd.fresh-secret-key",
+        access: dopplerTokenCreateBody.access,
+        expires_at: null,
+      },
     });
   })
 );
