@@ -2,6 +2,13 @@
 
 
 
+## [0.5.1](https://github.com/timothygithinji/t-stack/compare/v0.5.0...v0.5.1) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** correct Doppler service token endpoint paths ([03aef00](https://github.com/timothygithinji/t-stack/commit/03aef00fc348af5e808b511dccea01d9965b56df))
+* **cli:** push CLOUDFLARE_API_TOKEN + ACCOUNT_ID alongside DOPPLER_TOKEN ([b03e3c4](https://github.com/timothygithinji/t-stack/commit/b03e3c4eb7d472cdeace9f86c338ddcbb78fdde8))
+
 ## [0.5.0](https://github.com/timothygithinji/t-stack/compare/v0.4.1...v0.5.0) (2026-05-21)
 
 ### Features
