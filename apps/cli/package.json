@@ -1,6 +1,6 @@
 {
   "name": "@timothygithinji/t-stack",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Personal project bootstrapper that goes beyond scaffolding — creates cloud resources, pushes secrets, deploys",
   "license": "MIT",
   "author": "Timothy Githinji",

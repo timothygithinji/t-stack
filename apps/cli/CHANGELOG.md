@@ -2,6 +2,12 @@
 
 
 
+## [0.7.1](https://github.com/timothygithinji/t-stack/compare/v0.7.0...v0.7.1) (2026-05-21)
+
+### Bug Fixes
+
+* **cli:** don't cascade invalidation on cosmetic redacted-refs re-runs ([0f40171](https://github.com/timothygithinji/t-stack/commit/0f401719cdd2efeab31cc396fc5a4e41c4b3a9b0))
+
 ## [0.7.0](https://github.com/timothygithinji/t-stack/compare/v0.6.0...v0.7.0) (2026-05-21)
 
 ### Features
