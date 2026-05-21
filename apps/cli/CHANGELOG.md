@@ -2,6 +2,29 @@
 
 
 
+## [0.3.0](https://github.com/timothygithinji/t-stack/compare/v0.2.0...v0.3.0) (2026-05-21)
+
+### Features
+
+* **cli:** frame every command with intro/outro/cancel ([8974592](https://github.com/timothygithinji/t-stack/commit/89745929b73dcd9b00a5147342bfdc01ce22d210))
+* **cli:** group subcommands in top-level help ([86deb4c](https://github.com/timothygithinji/t-stack/commit/86deb4c6d51d86fc5b84a944dfe22a894ac7d237))
+* **cli:** polish help/init UX ([9cd64dc](https://github.com/timothygithinji/t-stack/commit/9cd64dc49bbed3428b23402be6b6878bf9e517cb))
+* **cli:** remediation hints, --yes on destructive org subs, init review step ([4b1810e](https://github.com/timothygithinji/t-stack/commit/4b1810e05b057248224c94f46419494f3c58975c))
+* flat per-axis schema with BTS-style compat + fragment templates ([81243a5](https://github.com/timothygithinji/t-stack/commit/81243a58046020a53457dfbbd71e67de7cbc3e29)), closes [#if](https://github.com/timothygithinji/t-stack/issues/if)
+
+### CI/CD
+
+* **deploy:** bump runner Node to 22 for wrangler 4 ([f180dfa](https://github.com/timothygithinji/t-stack/commit/f180dfa5a18798b3c711e1dfd3d7a664918f2922))
+* rename web-deploy → deploy and pull CF creds from Doppler ([2646bbc](https://github.com/timothygithinji/t-stack/commit/2646bbc1630256b429d8b1cc6ebab628974f89fa))
+
+### Maintenance
+
+* drop cli dev script and switch turbo to tui ui ([6059815](https://github.com/timothygithinji/t-stack/commit/6059815e8e4f8a09eb955b4b5fb2217e8294b98d))
+* drop orphaned predev hook and no-op echo build scripts ([be63103](https://github.com/timothygithinji/t-stack/commit/be63103f01c38dbfe09e96781ae73f14c7855aeb))
+* standardize package.json key order and bump apps/web majors ([4b57e30](https://github.com/timothygithinji/t-stack/commit/4b57e30e47536f5785c852e2e56f5958de4c9e72))
+* tighten biome/ultracite config and replace global rule disables with scoped overrides ([f8b8ee5](https://github.com/timothygithinji/t-stack/commit/f8b8ee5a3c9d8ee00f7b1336415d13777ea4de8d))
+* **web:** drop unused biome-ignore on GithubIcon ([7559aad](https://github.com/timothygithinji/t-stack/commit/7559aadc84ed11e2af06fa3a73a39430c96ab333))
+
 ## [0.2.0](https://github.com/timothygithinji/t-stack/compare/v0.1.3...v0.2.0) (2026-05-21)
 
 ### Features
