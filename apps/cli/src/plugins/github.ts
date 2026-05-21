@@ -92,15 +92,23 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
 }
 
 /**
- * Provision a Doppler service token scoped to `${projectName}/prd` and push
- * it to the GitHub repo as the `DOPPLER_TOKEN` secret. Workflows can then
- * authenticate to Doppler by setting `DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}`
- * in the env block — no OIDC dance needed.
+ * Push the GitHub Actions deploy step everything it needs to authenticate:
+ *
+ *   - DOPPLER_TOKEN: fresh config-scoped read-only Doppler service token,
+ *     used by the fetch-secrets composite action to pull app secrets into
+ *     GITHUB_ENV. Rotated on every call (Doppler only returns the key on
+ *     creation, so the existing one is irretrievable).
+ *   - CLOUDFLARE_API_TOKEN: org-level token used by wrangler to push the
+ *     worker. Same value the local CLI uses for Pulumi.
+ *   - CLOUDFLARE_ACCOUNT_ID: required alongside the token by wrangler in
+ *     non-interactive mode.
+ *
+ * Stored as repo secrets (encrypted) rather than variables so the values
+ * never appear in workflow logs. Account ID is also a secret here for
+ * uniformity; treat it as low-value but non-public.
  *
  * Replaces the previous `configureDopplerOidc` path which required a paid
- * Doppler workplace and an out-of-band identity UUID in orgs.toml. Service
- * tokens work on Doppler's free plan and are config-scoped + read-only by
- * default, so the blast radius is limited to one env's secrets.
+ * Doppler workplace and silently no-op'd on the free plan.
  */
 export async function configureDopplerDeployToken(
   ctx: Ctx,
@@ -116,6 +124,18 @@ export async function configureDopplerDeployToken(
     "github-actions-deploy"
   );
   await setRepoSecret(ctx, gh, "DOPPLER_TOKEN", dopplerToken);
+  await setRepoSecret(
+    ctx,
+    gh,
+    "CLOUDFLARE_API_TOKEN",
+    ctx.tokens.cloudflareApiToken
+  );
+  await setRepoSecret(
+    ctx,
+    gh,
+    "CLOUDFLARE_ACCOUNT_ID",
+    ctx.org.cloudflareAccountId
+  );
 }
 
 export async function setRepoSecret(
