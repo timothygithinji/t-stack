@@ -9,7 +9,7 @@
  *
  * Runs in `predev` / `prebuild` so the generated file is always in sync.
  */
-import { glob, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,23 +34,31 @@ const BINARY_EXTENSIONS = new Set([
 
 const entries: { path: string; content: string }[] = [];
 
-// glob returns relative-to-cwd paths; use absolute pattern + manual relative.
-const pattern = join(TEMPLATES_DIR, "**/*");
-for await (const abs of glob(pattern)) {
-  const stat = await import("node:fs/promises").then((m) => m.stat(abs));
-  if (!stat.isFile()) {
-    continue;
+// Walk the templates tree manually. Avoids fs/promises#glob (Node 22+
+// / Bun 1.2+) which CI's pinned Bun 1.1.38 doesn't ship yet.
+async function walk(dir: string): Promise<void> {
+  const items = await readdir(dir, { withFileTypes: true });
+  for (const item of items) {
+    const abs = join(dir, item.name);
+    if (item.isDirectory()) {
+      await walk(abs);
+      continue;
+    }
+    if (!item.isFile()) {
+      continue;
+    }
+    const ext = abs.slice(abs.lastIndexOf(".")).toLowerCase();
+    if (BINARY_EXTENSIONS.has(ext)) {
+      // Binary files would balloon the bundle; templates that need binary
+      // assets (currently none) would have to be handled separately.
+      continue;
+    }
+    const rel = relative(TEMPLATES_DIR, abs);
+    const content = await readFile(abs, "utf8");
+    entries.push({ path: rel, content });
   }
-  const ext = abs.slice(abs.lastIndexOf(".")).toLowerCase();
-  if (BINARY_EXTENSIONS.has(ext)) {
-    // Binary files would balloon the bundle; templates that need binary
-    // assets (currently none) would have to be handled separately.
-    continue;
-  }
-  const rel = relative(TEMPLATES_DIR, abs);
-  const content = await readFile(abs, "utf8");
-  entries.push({ path: rel, content });
 }
+await walk(TEMPLATES_DIR);
 
 entries.sort((a, b) => a.path.localeCompare(b.path));
 
