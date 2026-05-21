@@ -8,6 +8,7 @@ import type { Ctx, InitDecisions, Paths, PresetDef } from "../core/preset.ts";
 import { createStateStore } from "../core/state.js";
 import { loadTokens } from "../core/tokens.js";
 import { exportPerProjectSecret } from "../plugins/doppler.js";
+import { BUILTIN_PRESETS } from "../preset-registry.js";
 
 /**
  * Walk up from this file to locate the CLI install root (the directory
@@ -220,38 +221,49 @@ export async function buildCtx(opts: BuildCtxOpts): Promise<Ctx> {
 }
 
 /**
- * Enumerate available preset ids by scanning `<cliRoot>/presets/`. Skips the
- * `_base` helper and any file that doesn't look like a preset module.
+ * Enumerate available preset ids. Built-in presets come from the static
+ * registry (bundled into dist/cli.js). Also unions any user-added presets
+ * found on disk under `<cliRoot>/presets/` — the FS scan is best-effort
+ * and exists so future user extension points can be added without changing
+ * this signature. Skips the `_base` helper.
  */
 export async function listPresetIds(cliRoot?: string): Promise<string[]> {
+  const ids = new Set<string>(Object.keys(BUILTIN_PRESETS));
   const root = cliRoot ?? findCliRoot();
   const presetsDir = join(root, "presets");
-  if (!existsSync(presetsDir)) {
-    return [];
-  }
-  try {
-    const entries = await readdir(presetsDir);
-    const ids = new Set<string>();
-    for (const entry of entries) {
-      const m = entry.match(/^(?!_)([a-z0-9][a-z0-9-]*)\.(ts|mjs|js)$/);
-      if (m?.[1]) {
-        ids.add(m[1]);
+  if (existsSync(presetsDir)) {
+    try {
+      const entries = await readdir(presetsDir);
+      for (const entry of entries) {
+        const m = entry.match(/^(?!_)([a-z0-9][a-z0-9-]*)\.(ts|mjs|js)$/);
+        if (m?.[1]) {
+          ids.add(m[1]);
+        }
       }
+    } catch {
+      // ignore: registry alone is sufficient
     }
-    return [...ids].sort();
-  } catch {
-    return [];
   }
+  return [...ids].sort();
 }
 
 /**
- * Dynamically load a preset module from `<cliRoot>/presets/<presetId>.{ts,mjs,js}`.
- * Throws a friendly error (listing available preset ids) if not found.
+ * Load a preset. Built-in presets resolve via the static registry — they're
+ * bundled into dist/cli.js, which avoids Node's "type stripping is
+ * unsupported under node_modules" error on .ts source.
+ *
+ * Falls back to a filesystem scan under `<cliRoot>/presets/` for any
+ * non-built-in id (future user-extension hook). Throws a friendly error
+ * listing available ids when nothing matches.
  */
 export async function loadPreset(
   presetId: string,
   cliRoot?: string
 ): Promise<PresetDef> {
+  const builtin = BUILTIN_PRESETS[presetId];
+  if (builtin) {
+    return builtin;
+  }
   const root = cliRoot ?? findCliRoot();
   const candidates = [
     join(root, "presets", `${presetId}.ts`),
