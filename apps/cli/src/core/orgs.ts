@@ -17,10 +17,15 @@ interface OrgEntryToml {
   cloudflare_zones?: Record<string, string>;
   github_owner?: string;
   doppler_workplace_name?: string;
-  doppler_oidc_identity_id?: string;
   pulumi_org?: string;
   neon_org_id?: string;
   trigger_org_slug?: string;
+  /**
+   * Legacy field from the OIDC era. Read-only — when found, we silently drop
+   * it on the next write. Kept here so smol-toml's strict parse doesn't
+   * complain on existing user files that still carry it.
+   */
+  doppler_oidc_identity_id?: string;
 }
 
 interface OrgsFile {
@@ -57,9 +62,6 @@ function toProfile(name: string, entry: OrgEntryToml): OrgProfile {
     githubOwner: entry.github_owner ?? "",
     dopplerWorkplaceName: entry.doppler_workplace_name ?? "",
   };
-  if (entry.doppler_oidc_identity_id) {
-    profile.dopplerOidcIdentityId = entry.doppler_oidc_identity_id;
-  }
   if (entry.pulumi_org) {
     profile.pulumiOrg = entry.pulumi_org;
   }
@@ -69,6 +71,9 @@ function toProfile(name: string, entry: OrgEntryToml): OrgProfile {
   if (entry.trigger_org_slug) {
     profile.triggerOrgSlug = entry.trigger_org_slug;
   }
+  // doppler_oidc_identity_id is intentionally ignored — OIDC was dropped in
+  // favor of service tokens; the field is left in `OrgEntryToml` only so
+  // existing files don't break on parse, and it's omitted from the next write.
   return profile;
 }
 
@@ -80,9 +85,6 @@ function fromProfile(profile: OrgProfile): OrgEntryToml {
     doppler_workplace_name: profile.dopplerWorkplaceName,
     cloudflare_zones: profile.cloudflareZones ?? {},
   };
-  if (profile.dopplerOidcIdentityId) {
-    entry.doppler_oidc_identity_id = profile.dopplerOidcIdentityId;
-  }
   if (profile.pulumiOrg) {
     entry.pulumi_org = profile.pulumiOrg;
   }

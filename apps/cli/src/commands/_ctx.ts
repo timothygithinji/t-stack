@@ -93,10 +93,28 @@ export interface ResolvedPresetId {
 }
 
 /**
+ * Map a legacy preset/archetype id to its current name. Pre-d9d95fe state
+ * files stored the field as `archetype` with the old slugs; honor them so
+ * old projects don't trip the "No preset on file" warning until someone
+ * hand-edits state.json.
+ */
+function migrateLegacyPresetId(id: string): string {
+  switch (id) {
+    case "solo-cf-worker":
+      return "single-cloudflare";
+    case "monorepo-cf-worker":
+      return "monorepo-cloudflare";
+    default:
+      return id;
+  }
+}
+
+/**
  * Derive a preset id from the available signals, in order:
  *   1. explicit `presetId` argument
  *   2. previously-persisted state.json `project.presetId`
- *   3. fallback by `decisions.structure` (monorepo → monorepo-cloudflare, else single-cloudflare)
+ *   3. legacy `project.archetype` (migrated to the current preset name)
+ *   4. fallback by `decisions.structure` (monorepo → monorepo-cloudflare, else single-cloudflare)
  *
  * The returned `source` lets callers warn the user when a structure-derived
  * preset is being substituted for an explicit "custom" choice.
@@ -113,11 +131,11 @@ export async function resolvePresetId(opts: {
     try {
       const raw = readFileSync(opts.stateFile, "utf8");
       const parsed = JSON.parse(raw) as {
-        project?: { presetId?: string };
+        project?: { presetId?: string; archetype?: string };
       };
-      const fromState = parsed.project?.presetId;
+      const fromState = parsed.project?.presetId ?? parsed.project?.archetype;
       if (typeof fromState === "string" && fromState.length > 0) {
-        return { id: fromState, source: "state" };
+        return { id: migrateLegacyPresetId(fromState), source: "state" };
       }
     } catch {
       // fall through to structure-based fallback

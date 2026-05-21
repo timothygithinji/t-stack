@@ -14,8 +14,6 @@ export interface OrgProfile {
   githubOwner: string;
   /** Display name of the Doppler workplace that holds this org's `t-stack` project (e.g. "Personal", "Fanya Labs"). */
   dopplerWorkplaceName: string;
-  /** OIDC identity id used by GitHub Actions to auth into this org's Doppler workplace. */
-  dopplerOidcIdentityId?: string;
   pulumiOrg?: string;
   neonOrgId?: string;
   /** Trigger.dev org slug to scope projects under (e.g. "personal-108a"). Required only when trigger=true. */

@@ -225,21 +225,6 @@ export const loginCommand = defineCommand({
       );
       p.log.success(`Tokens stored in ${meta.slug}/${META_CONFIG}.`);
 
-      const existingIdentity = org.dopplerOidcIdentityId ?? "";
-      const identity = await p.text({
-        message: `Doppler OIDC Identity ID for GitHub Actions in workplace ${org.dopplerWorkplaceName}? (leave blank to set later)`,
-        placeholder: existingIdentity || "5f...-uuid",
-        defaultValue: existingIdentity,
-      });
-      if (
-        !p.isCancel(identity) &&
-        typeof identity === "string" &&
-        identity.length > 0
-      ) {
-        await orgsStore.add({ ...org, dopplerOidcIdentityId: identity });
-        p.log.success(`Saved dopplerOidcIdentityId for org "${org.name}".`);
-      }
-
       p.outro(
         "Login complete. Run `t-stack init <name>` to scaffold a project."
       );

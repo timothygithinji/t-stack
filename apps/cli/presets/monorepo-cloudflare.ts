@@ -76,6 +76,7 @@ export default definePreset({
         async run(c) {
           return await turso.create(c);
         },
+        verify: turso.verifyExists,
         invalidates: [
           "doppler.seedSecrets",
           "secrets.cloudflare",

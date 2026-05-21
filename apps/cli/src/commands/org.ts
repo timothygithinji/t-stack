@@ -74,10 +74,6 @@ const addSub = defineCommand({
       type: "string",
       description: 'Doppler workplace name (e.g. "Personal")',
     },
-    "doppler-oidc-identity": {
-      type: "string",
-      description: "Doppler OIDC Identity ID (optional, set later by login)",
-    },
     "pulumi-org": { type: "string", description: "Pulumi org slug (optional)" },
     "neon-org-id": {
       type: "string",
@@ -113,10 +109,6 @@ const addSub = defineCommand({
       const neonOrgId = args["neon-org-id"];
       if (typeof neonOrgId === "string" && neonOrgId.length > 0) {
         profile.neonOrgId = neonOrgId;
-      }
-      const dopplerIdentity = args["doppler-oidc-identity"];
-      if (typeof dopplerIdentity === "string" && dopplerIdentity.length > 0) {
-        profile.dopplerOidcIdentityId = dopplerIdentity;
       }
       const triggerOrgSlug = args["trigger-org-slug"];
       if (typeof triggerOrgSlug === "string" && triggerOrgSlug.length > 0) {
