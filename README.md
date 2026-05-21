@@ -125,10 +125,12 @@ Releases are driven by a manually-triggered GitHub Action — **never run from a
 
 No `NPM_TOKEN`, no Doppler service token, no long-lived secrets anywhere. The release workflow's `id-token: write` permission lets the npm CLI exchange a GitHub OIDC token for a short-lived npm publish credential at runtime. Provenance is automatic — every package version is cryptographically signed and traceable back to the exact CI run.
 
-**To release:**
-1. Push your conventional-commit changes to `main`.
-2. Go to **Actions → Release → Run workflow**. Leave "version bump" blank to auto-detect from commits, or pick `patch`/`minor`/`major`/`prerelease` explicitly.
-3. Workflow lints, typechecks, tests, builds, then bumps + tags + publishes.
+**To release:** just push conventional-commit changes to `main`. The Release workflow runs on every push and:
+
+- exits cleanly if no `feat`/`fix`/`perf` commits since the last tag (so `docs`/`chore`/`refactor` pushes are no-ops)
+- otherwise bumps the version (semver from commit types), updates `CHANGELOG.md`, tags, creates the GitHub release, and publishes to npm
+
+For an out-of-band release (e.g. CI was flaky and you want to re-run the release pipeline), trigger manually from **Actions → Release → Run workflow** — the workflow accepts an optional "reason" input that gets logged for the audit trail.
 
 **Local preview** (no side effects):
 

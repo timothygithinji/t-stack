@@ -1,34 +1,52 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "presets/**"
+      - "templates/**"
+      - "scripts/**"
+      - "test/**"
+      - "package.json"
+      - "bun.lock"
+      - "tsconfig.json"
+      - "biome.json"
+      - ".release-it.ts"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
-      increment:
-        description: "Version bump (leave blank to auto-detect from conventional commits)"
+      reason:
+        description: "Reason for manual release (optional)"
         required: false
-        type: choice
-        default: ""
-        options:
-          - ""
-          - patch
-          - minor
-          - major
-          - prerelease
+        type: string
 
 concurrency:
-  group: release
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # push tag + commit back to main
+      contents: write       # push tag + release commit back to main
       id-token: write       # npm trusted publishing (OIDC) + provenance
       issues: write
       pull-requests: write
 
     steps:
+      - name: Log manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REASON: ${{ github.event.inputs.reason }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "Manual release triggered by $ACTOR"
+          [ -n "$REASON" ] && echo "Reason: $REASON" || true
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0    # release-it needs full history for conventional-changelog
@@ -41,7 +59,7 @@ jobs:
       - name: Set up Node (npm CLI exchanges OIDC for trusted-publishing token)
         uses: actions/setup-node@v4
         with:
-          node-version: 22         # Node 22 ships with npm 10, but we need 11+
+          node-version: 22
           registry-url: https://registry.npmjs.org
 
       - name: Upgrade npm (trusted publishing needs >= 11.5)
@@ -57,24 +75,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Lint, typecheck, test, build (gate)
-        run: |
-          bun run lint
-          bun run typecheck
-          bun run test
-          bun run build
-
-      - name: Release (release-it)
+      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No NPM_TOKEN. npm CLI uses the OIDC token from the runner to
-          # authenticate via trusted publishing, configured at
-          # https://www.npmjs.com/package/@timothygithinji/t-stack/access
+          # No NPM_TOKEN — npm uses the runner's OIDC token to authenticate
+          # via the package's trusted publisher.
           NPM_CONFIG_PROVENANCE: "true"
-          INCREMENT: ${{ inputs.increment }}
+        run: bun run release --ci
+
+      - name: Summary
+        if: success()
+        env:
+          REPO: ${{ github.repository }}
         run: |
-          if [ -n "$INCREMENT" ]; then
-            bunx release-it "$INCREMENT" --ci
-          else
-            bunx release-it --ci
-          fi
+          echo "## Release Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "Workflow run for commit \`${GITHUB_SHA::7}\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- [Releases](https://github.com/$REPO/releases)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- [npm](https://www.npmjs.com/package/@timothygithinji/t-stack)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "If no releasable commits since the last tag, release-it exited without bumping. That's expected." >> "$GITHUB_STEP_SUMMARY"
