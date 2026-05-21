@@ -2,6 +2,17 @@
 
 
 
+## [0.9.0](https://github.com/timothygithinji/t-stack/compare/v0.8.0...v0.9.0) (2026-05-21)
+
+### Features
+
+* **cli:** finish Better Auth wiring, apply-to-all prompt, next-step hints ([a09521a](https://github.com/timothygithinji/t-stack/commit/a09521aee5094932e0fd0c89b15947ac028403cb))
+
+### Bug Fixes
+
+* **cli:** cloudflare verify + slim doppler.seedSecrets + drop legacy fields ([920f8f3](https://github.com/timothygithinji/t-stack/commit/920f8f3929b97dca59bf3bc8872995042e951a08))
+* **cli:** tighten three loose ends from the post-OIDC cleanup ([93bc51f](https://github.com/timothygithinji/t-stack/commit/93bc51f371a292c56a711e119aabccaa715b5b6f))
+
 ## [0.8.0](https://github.com/timothygithinji/t-stack/compare/v0.7.1...v0.8.0) (2026-05-21)
 
 ### Features
