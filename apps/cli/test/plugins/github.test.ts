@@ -224,9 +224,7 @@ describe("github.setRepoSecret", () => {
     expect(putSecretBody).toBeDefined();
     expect(putSecretBody?.key_id).toBe("test-key-id");
     expect(typeof putSecretBody?.encrypted_value).toBe("string");
-    expect(String(putSecretBody?.encrypted_value ?? "").length).toBeGreaterThan(
-      0
-    );
+    expect(putSecretBody?.encrypted_value).not.toBe("");
   });
 });
 
