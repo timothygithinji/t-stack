@@ -86,7 +86,7 @@ describe("runScaffold fragment composition", () => {
     const composePath = join(destDir, "docker-compose.yml");
     expect(existsSync(composePath)).toBe(true);
     const content = await readFile(composePath, "utf8");
-    expect(content).toMatch(/minio/i);
+    expect(content).toMatch(/minio/iu);
     // Templated projectName is interpolated.
     expect(content).toContain("with-r2-minio");
   });

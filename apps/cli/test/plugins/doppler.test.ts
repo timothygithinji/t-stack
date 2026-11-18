@@ -64,8 +64,8 @@ const server = setupServer(
     };
     const slug = body.name
       .toLowerCase()
-      .replace(/[^a-z0-9-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
+      .replace(/[^a-z0-9-]+/gu, "-")
+      .replace(/^-+|-+$/gu, "")
       .slice(0, 64);
     const existing = projects.find((p) => p.slug === slug);
     if (existing) {
@@ -141,7 +141,7 @@ const server = setupServer(
 
 beforeAll(() => {
   process.env.DOPPLER_TOKEN = "stub-doppler-token";
-  server.listen({ onUnhandledRequest: "error" });
+  server.listen({ onUnhandledFrame: "error" });
 });
 afterEach(() => {
   server.resetHandlers();

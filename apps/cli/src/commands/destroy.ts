@@ -31,7 +31,6 @@ function getRefs<T>(ctx: Ctx, ids: string[]): T | undefined {
       return refs as unknown as T;
     }
   }
-  return;
 }
 
 // Order: REVERSE of provision. App-layer first, foundational last.
@@ -163,8 +162,8 @@ function buildTeardowns(decisions: {
         refs?.slug ??
         ctx.projectName
           .toLowerCase()
-          .replace(/[^a-z0-9-]+/g, "-")
-          .replace(/^-+|-+$/g, "");
+          .replace(/[^a-z0-9-]+/gu, "-")
+          .replace(/^-+|-+$/gu, "");
       if (!slug) {
         ctx.logger.warn("No Doppler project slug in state.json; skipping.");
         return;

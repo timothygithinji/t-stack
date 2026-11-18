@@ -8,8 +8,8 @@ import {
   walkFields,
 } from "../src/index.js";
 
-const CLOUDFLARE_REASON_RE = /Cloudflare/i;
-const POSTGRES_REASON_RE = /Postgres/i;
+const CLOUDFLARE_REASON_RE = /Cloudflare/iu;
+const POSTGRES_REASON_RE = /Postgres/iu;
 
 const basePayload = {
   projectName: "my-app",

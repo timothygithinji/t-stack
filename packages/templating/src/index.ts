@@ -48,7 +48,7 @@ async function isBinary(filePath: string): Promise<boolean> {
  * still substitute. The matching `}}` is consumed as part of the escape.
  */
 function escapeGhaActionsSyntax(template: string): string {
-  return template.replace(/\$\{\{/g, "$\\{{");
+  return template.replace(/\$\{\{/gu, "$\\{{");
 }
 
 export function renderString(

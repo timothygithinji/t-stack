@@ -3,7 +3,7 @@ import { generateCommand } from "./command";
 import { type DraftStack, DEFAULT_STACK } from "./types";
 import { decodeStack, encodeStack } from "./url";
 
-const LEADING_QUESTION_MARK = /^\?/;
+const LEADING_QUESTION_MARK = /^\?/u;
 
 interface UseStackBuilderResult {
   stack: DraftStack;

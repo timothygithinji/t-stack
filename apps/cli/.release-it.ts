@@ -4,16 +4,20 @@ import type { Config } from "release-it";
 
 export default {
   git: {
-    commitMessage: "chore: release v${version}",
+    // Tags are the source of truth for versions. main is protected, so
+    // release-it never commits back to it: the version bump in package.json
+    // only lives in the CI workspace long enough to publish, and the tag
+    // (pointing at the merged commit) plus the GitHub release record it.
+    commit: false,
+    tag: true,
     tagName: "v${version}",
+    tagAnnotation: "Release v${version}",
     getLatestTagFromAllRefs: true,
     requireCleanWorkingDir: true,
     requireBranch: "main",
     push: true,
     pushRepo: "origin",
-    // --no-verify: husky pre-push runs the full check on every push;
-    // release-it has already validated the working tree, so skip the duplicate run.
-    pushArgs: ["--no-verify", "--follow-tags"],
+    pushArgs: ["--follow-tags"],
   },
   github: {
     release: true,
@@ -22,6 +26,9 @@ export default {
   },
   npm: {
     publish: true,
+    // Read the current version from the latest git tag, not package.json
+    // (which is pinned to 0.0.0-development in the repo).
+    ignoreVersion: true,
     // No NPM_TOKEN exists under trusted publishing — release-it's whoami
     // check would otherwise fail. `npm publish` itself succeeds via OIDC.
     skipChecks: true,
@@ -42,15 +49,7 @@ export default {
           { type: "chore", section: "Maintenance" },
         ],
       },
-      infile: "CHANGELOG.md",
-      header: "# Changelog\n\n",
+      // No infile: notes go to the GitHub release only — no CHANGELOG.md.
     },
-  },
-  hooks: {
-    "before:init": [
-      "bun --cwd ../.. run lint",
-      "bun --cwd ../.. run typecheck",
-      "bun --cwd ../.. run test",
-    ],
   },
 } satisfies Config;

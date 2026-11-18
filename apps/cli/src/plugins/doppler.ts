@@ -60,8 +60,8 @@ export function orgScope(orgName: string): string {
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9-]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
     .slice(0, 64);
 }
 
@@ -436,7 +436,7 @@ export async function exportPerProjectSecret(
     const v = parsed[key];
     return typeof v === "string" && v.length > 0 ? v : undefined;
   } catch {
-    return;
+    // Unreadable or malformed config — treat as no value.
   }
 }
 

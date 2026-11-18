@@ -62,7 +62,7 @@ export function OptionCard({
                 : "text-[var(--color-muted-foreground)]"
             )}
           />
-          <span className="font-medium text-sm">{label}</span>
+          <span className="text-sm font-medium">{label}</span>
         </div>
         {selected ? (
           <Check
@@ -71,7 +71,7 @@ export function OptionCard({
           />
         ) : null}
       </div>
-      <p className="text-[var(--color-muted-foreground)] text-xs">
+      <p className="text-xs text-[var(--color-muted-foreground)]">
         {description}
       </p>
     </button>

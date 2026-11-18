@@ -29,7 +29,7 @@ describe("loadPreset", () => {
 
   it("throws with the available presets when the id is unknown", async () => {
     await expect(loadPreset("does-not-exist", CLI_ROOT)).rejects.toThrow(
-      /does-not-exist.*Available: monorepo-cloudflare, single-cloudflare/s
+      /does-not-exist.*Available: monorepo-cloudflare, single-cloudflare/su
     );
   });
 });

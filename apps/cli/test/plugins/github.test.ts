@@ -167,7 +167,7 @@ beforeAll(async () => {
     kp.publicKey,
     sodium.base64_variants.ORIGINAL
   );
-  server.listen({ onUnhandledRequest: "error" });
+  server.listen({ onUnhandledFrame: "error" });
 });
 afterEach(() => {
   server.resetHandlers();
@@ -224,9 +224,7 @@ describe("github.setRepoSecret", () => {
     expect(putSecretBody).toBeDefined();
     expect(putSecretBody?.key_id).toBe("test-key-id");
     expect(typeof putSecretBody?.encrypted_value).toBe("string");
-    expect((putSecretBody?.encrypted_value as string).length).toBeGreaterThan(
-      0
-    );
+    expect(putSecretBody?.encrypted_value).not.toBe("");
   });
 });
 

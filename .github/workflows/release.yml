@@ -28,12 +28,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gate on the full CI suite (lint, typecheck, test, build). release-it
+  # no longer runs these itself.
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   release:
     name: Release
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # push tag + release commit back to main
-      id-token: write       # npm trusted publishing (OIDC) + provenance
+      contents: write # push the version tag + create the GitHub release
+      id-token: write # npm trusted publishing (OIDC) + provenance
       issues: write
       pull-requests: write
 
@@ -47,9 +55,9 @@ jobs:
           echo "Manual release triggered by $ACTOR"
           [ -n "$REASON" ] && echo "Reason: $REASON" || true
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0    # release-it needs full history for conventional-changelog
+          fetch-depth: 0 # release-it needs full history + tags to compute the next version
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
@@ -57,14 +65,14 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Set up Node (npm CLI exchanges OIDC for trusted-publishing token)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Upgrade npm (trusted publishing needs >= 11.5)
         run: |
-          npm install -g npm@11.5.1
+          npm install -g npm@11
           npm --version
 
       - name: Install dependencies

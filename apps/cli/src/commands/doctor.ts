@@ -230,9 +230,9 @@ async function verifyTriggerOrgSlug(
       };
     }
     const orgSlugs = new Set<string>();
-    for (const p of projects) {
-      if (p.organization?.slug) {
-        orgSlugs.add(p.organization.slug);
+    for (const project of projects) {
+      if (project.organization?.slug) {
+        orgSlugs.add(project.organization.slug);
       }
     }
     if (orgSlugs.has(triggerOrgSlug)) {
@@ -276,8 +276,8 @@ async function verifyHookdeckToken(token: string): Promise<Check> {
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9-]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
     .slice(0, 64);
 }
 
@@ -345,8 +345,8 @@ async function checkGhAuth(): Promise<Check> {
       reject: false,
     });
     const merged = `${stderr}\n${stdout}`;
-    const accountMatch = merged.match(/account\s+(\S+)/i);
-    const loggedIn = /Logged in/i.test(merged);
+    const accountMatch = merged.match(/account\s+(\S+)/iu);
+    const loggedIn = /Logged in/iu.test(merged);
     if (loggedIn) {
       const user = accountMatch?.[1] ?? "unknown";
       return { name: "gh auth", ok: true, detail: user };

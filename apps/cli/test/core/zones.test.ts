@@ -53,7 +53,7 @@ describe("resolveZoneForDomain", () => {
 const server = setupServer();
 
 describe("discoverZoneViaCfApi", () => {
-  beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+  beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
   afterEach(() => server.resetHandlers());
   afterAll(() => server.close());
 

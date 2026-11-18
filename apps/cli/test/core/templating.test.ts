@@ -29,7 +29,7 @@ describe("renderString", () => {
     // Build the GHA literal at runtime so Biome's noTemplateCurlyInString
     // rule (which flags `\${` inside ordinary strings) doesn't trip — the
     // whole point of this test is that the embedded text survives intact.
-    const ghaOpen = `${"$"}{{`;
+    const ghaOpen = "${{";
     const ghaClose = "}}";
     const tmpl = [
       "project: {{projectName}}",

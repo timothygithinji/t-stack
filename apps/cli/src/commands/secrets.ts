@@ -13,8 +13,8 @@ import * as trigger from "../plugins/trigger.js";
 import { buildCtx, loadConfig } from "./_ctx.js";
 
 function escapeDotenvValue(v: string): string {
-  if (/[\s"'#=]/.test(v)) {
-    return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  if (/[\s"'#=]/u.test(v)) {
+    return `"${v.replace(/\\/gu, "\\\\").replace(/"/gu, '\\"')}"`;
   }
   return v;
 }

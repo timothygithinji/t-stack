@@ -18,7 +18,7 @@
 export const REDACTED = "<redacted>";
 
 const SENSITIVE_KEY_PATTERN =
-  /(?:secret|password|token|connectionstring|authtoken|apikey|privatekey)/i;
+  /(?:secret|password|token|connectionstring|authtoken|apikey|privatekey)/iu;
 
 /**
  * Returns true if a refs key should be considered sensitive and replaced

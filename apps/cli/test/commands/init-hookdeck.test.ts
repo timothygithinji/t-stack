@@ -162,7 +162,7 @@ describe("buildCtx Hookdeck wiring", () => {
 
     await expect(
       buildCtx({ cwd, decisions, nonInteractive: true })
-    ).rejects.toThrow(/HOOKDECK_API_KEY/);
+    ).rejects.toThrow(/HOOKDECK_API_KEY/u);
   });
 
   it("skips Hookdeck lookup entirely when hookdeck=false", async () => {

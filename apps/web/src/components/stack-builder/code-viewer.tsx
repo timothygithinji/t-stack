@@ -36,7 +36,7 @@ export function CodeViewer({ file }: CodeViewerProps) {
 
   if (!file) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-[var(--color-muted-foreground)] text-sm">
+      <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--color-muted-foreground)]">
         Pick a file from the tree to preview it.
       </div>
     );
@@ -44,7 +44,7 @@ export function CodeViewer({ file }: CodeViewerProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-[var(--color-border)] border-b px-3 py-2">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
         <span className="truncate font-mono text-[11px]" title={file.path}>
           {file.path}
         </span>
@@ -74,7 +74,7 @@ export function CodeViewer({ file }: CodeViewerProps) {
             </code>
           </pre>
         ) : (
-          <pre className="px-3 py-3 font-mono text-[var(--color-foreground)] text-xs">
+          <pre className="px-3 py-3 font-mono text-xs text-[var(--color-foreground)]">
             <code>{file.content}</code>
           </pre>
         )}

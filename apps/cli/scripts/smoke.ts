@@ -52,7 +52,7 @@ async function resolveViaDig(domain: string): Promise<string[]> {
   return res.stdout
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => /^\d+\.\d+\.\d+\.\d+$/.test(line));
+    .filter((line) => /^\d+\.\d+\.\d+\.\d+$/u.test(line));
 }
 
 async function probeOnce(
@@ -123,7 +123,7 @@ async function main() {
   const _url = `https://${DOMAIN}`;
   let success = false;
   let lastResult: { status?: number; error?: string } | undefined;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 60; i += 1) {
     lastResult = await probeOnce(DOMAIN);
     if (lastResult.status === 200) {
       success = true;

@@ -21,14 +21,14 @@ interface ActionsSectionProps {
  */
 export function ActionsSection({ setStack, resetStack }: ActionsSectionProps) {
   return (
-    <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-border border-t bg-background px-5 py-3 backdrop-blur-sm">
+    <div className="border-border bg-background sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t px-5 py-3 backdrop-blur-sm">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-foreground transition-colors hover:bg-accent"
+            className="border-border bg-card text-foreground hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[11px] transition-colors"
             type="button"
           >
-            <Wand2 aria-hidden className="size-3.5 text-primary" />
+            <Wand2 aria-hidden className="text-primary size-3.5" />
             Presets
             <ChevronDown aria-hidden className="size-3" />
           </button>
@@ -40,7 +40,7 @@ export function ActionsSection({ setStack, resetStack }: ActionsSectionProps) {
               onSelect={() => setStack(preset.patch)}
             >
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm">{preset.name}</span>
+                <span className="text-sm font-medium">{preset.name}</span>
                 <span className="text-muted-foreground text-xs">
                   {preset.description}
                 </span>
@@ -51,17 +51,17 @@ export function ActionsSection({ setStack, resetStack }: ActionsSectionProps) {
       </DropdownMenu>
 
       <button
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-foreground transition-colors hover:bg-accent"
+        className="border-border bg-card text-foreground hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[11px] transition-colors"
         onClick={() => setStack(randomStackPatch())}
         title="Random stack"
         type="button"
       >
-        <Shuffle aria-hidden className="size-3.5 text-primary" />
+        <Shuffle aria-hidden className="text-primary size-3.5" />
         Random
       </button>
 
       <button
-        className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground ml-auto inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[11px] transition-colors"
         onClick={resetStack}
         title="Reset all fields"
         type="button"
