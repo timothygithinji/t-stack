@@ -46,7 +46,7 @@ export function PreviewPanel({ stack }: PreviewPanelProps) {
 
   if (!files) {
     return (
-      <div className="flex h-full items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 text-[var(--color-muted-foreground)] text-sm">
+      <div className="flex h-full items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 text-sm text-[var(--color-muted-foreground)]">
         Rendering template preview…
       </div>
     );
@@ -54,9 +54,9 @@ export function PreviewPanel({ stack }: PreviewPanelProps) {
 
   return (
     <div className="grid h-full grid-cols-[14rem_minmax(0,1fr)] grid-rows-[100%] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-card)]">
-      <aside className="flex min-h-0 flex-col overflow-y-auto border-[var(--color-border)] border-r">
-        <div className="sticky top-0 z-10 flex items-center border-[var(--color-border)] border-b bg-[var(--color-card)] px-3 py-2">
-          <p className="font-mono text-[11px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+      <aside className="flex min-h-0 flex-col overflow-y-auto border-r border-[var(--color-border)]">
+        <div className="sticky top-0 z-10 flex items-center border-b border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2">
+          <p className="font-mono text-[11px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
             {files.length} files
           </p>
         </div>
@@ -75,8 +75,8 @@ export function PreviewPanel({ stack }: PreviewPanelProps) {
   );
 }
 
-const README_RE = /^[a-z-/]*README\.md$/i;
-const CONFIG_RE = /t-stack\.config/;
+const README_RE = /^[a-z-/]*README\.md$/iu;
+const CONFIG_RE = /t-stack\.config/u;
 
 function pickInitialFile(files: RenderedFile[]): string | null {
   // Prefer README, then t-stack.config, then anything else.

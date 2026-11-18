@@ -92,7 +92,6 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_abc" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -117,7 +116,6 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_existing" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -139,7 +137,6 @@ describe("turso.create", () => {
         if (isTokensCreate(c)) {
           return { stdout: "tok_stable" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -159,7 +156,6 @@ describe("turso.verifyExists", () => {
         if (isShowUrl(c)) {
           return { stdout: "libsql://demo-fanya.turso.io" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -172,7 +168,6 @@ describe("turso.verifyExists", () => {
         if (isShowUrl(c)) {
           return { throws: true, stderr: "database not found" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });

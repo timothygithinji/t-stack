@@ -85,12 +85,12 @@ function CategorySection({
 }: CategorySectionProps) {
   return (
     <section>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-[var(--color-border)] border-b px-5">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-border)] px-5">
         <Terminal
           aria-hidden
           className="size-3.5 text-[var(--color-primary)]"
         />
-        <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+        <h2 className="font-mono text-[10px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
           {category.title}
         </h2>
       </header>
@@ -258,7 +258,7 @@ function GroupedSubSection({ group, stack, setStack }: GroupedSubSectionProps) {
   }
   return (
     <div className="flex flex-col gap-2">
-      <span className="block font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+      <span className="block font-mono text-[10px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
         {group.title}
       </span>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -394,7 +394,7 @@ function TextField({
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+      <span className="block font-mono text-[10px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
         {label}
       </span>
       <input
@@ -410,7 +410,7 @@ function TextField({
         value={value}
       />
       {error ? (
-        <p className="text-[var(--color-destructive)] text-xs">{error}</p>
+        <p className="text-xs text-[var(--color-destructive)]">{error}</p>
       ) : null}
     </label>
   );

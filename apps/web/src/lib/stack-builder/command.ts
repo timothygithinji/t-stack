@@ -14,7 +14,7 @@ import { DEFAULT_STACK, type DraftStack } from "./types";
  */
 
 const camelToKebab = (s: string) =>
-  s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+  s.replace(/[A-Z]/gu, (m) => `-${m.toLowerCase()}`);
 
 // Boolean fields use `--flag` / `--no-flag` instead of `--flag=value`.
 const BOOLEAN_FIELDS = new Set<keyof DraftStack>([

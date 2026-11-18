@@ -104,7 +104,7 @@ export async function createRepo(ctx: Ctx): Promise<GitHubRepoRef> {
   } catch (err) {
     const status = (err as { status?: number }).status;
     const message = (err as Error).message ?? "";
-    if (status === 422 && /already exists/i.test(message)) {
+    if (status === 422 && /already exists/iu.test(message)) {
       // "new" mode requested but the repo is already there — surface that
       // rather than silently adopting.
       if (ctx.recreateMode === "new") {

@@ -1,12 +1,12 @@
 {
   "name": "t-stack",
   "private": true,
-  "license": "MIT",
-  "author": "Timothy Githinji",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/timothygithinji/t-stack.git"
   },
+  "license": "MIT",
+  "author": "Timothy Githinji",
   "type": "module",
   "workspaces": [
     "apps/*",
@@ -15,31 +15,31 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "format": "biome format --write .",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
-    "format": "biome format --write .",
-    "smoke": "bun --filter @timothygithinji/t-stack smoke",
-    "sync-template": "bun --filter @timothygithinji/t-stack sync-template",
+    "prepare": "husky 2>/dev/null || true",
     "release": "bun --filter @timothygithinji/t-stack release",
     "release:dry": "bun --filter @timothygithinji/t-stack release:dry",
-    "prepare": "husky 2>/dev/null || true"
+    "smoke": "bun --filter @timothygithinji/t-stack smoke",
+    "sync-template": "bun --filter @timothygithinji/t-stack sync-template",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
   },
-  "engines": {
-    "node": ">=20",
-    "bun": ">=1.1"
-  },
-  "packageManager": "bun@1.3.0",
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
-    "@commitlint/cli": "21.0.1",
-    "@commitlint/config-conventional": "21.0.1",
-    "@types/bun": "^1.3.14",
-    "@types/node": "25.9.1",
+    "@biomejs/biome": "2.6.8",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@types/bun": "^1.4.4",
+    "@types/node": "26.6.6",
     "husky": "9.1.7",
-    "turbo": "2.9.14",
-    "typescript": "6.0.3",
-    "ultracite": "7.7.0"
+    "turbo": "2.11.13",
+    "typescript": "7.0.2",
+    "ultracite": "8.3.0"
+  },
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "bun": ">=1.1",
+    "node": ">=20"
   }
 }

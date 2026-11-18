@@ -14,7 +14,7 @@ export function ThemeToggle() {
   return (
     <fieldset
       aria-label="Theme"
-      className="inline-flex items-center gap-0.5 rounded-md border border-border bg-card p-0.5"
+      className="border-border bg-card inline-flex items-center gap-0.5 rounded-md border p-0.5"
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
         const active = theme === value;
@@ -24,7 +24,7 @@ export function ThemeToggle() {
             aria-pressed={active}
             className={cn(
               "inline-flex size-7 items-center justify-center rounded-sm transition-colors",
-              "focus-visible:outline-2 focus-visible:outline-ring",
+              "focus-visible:outline-ring focus-visible:outline-2",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"

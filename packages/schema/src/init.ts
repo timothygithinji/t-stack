@@ -4,7 +4,7 @@ import { isFieldVisible } from "./predicates.js";
 
 const projectName = z
   .string()
-  .regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits and dashes only")
+  .regex(/^[a-z0-9][a-z0-9-]*$/u, "lowercase letters, digits and dashes only")
   .register(fieldMeta, {
     ui: "text",
     label: "Project name",

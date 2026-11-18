@@ -25,7 +25,7 @@ import { z } from "zod";
 
 /** kebab-case the camelCase field name for CLI flags. */
 export function kebabName(field: string): string {
-  return field.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+  return field.replace(/[A-Z]/gu, (m) => `-${m.toLowerCase()}`);
 }
 
 /**
@@ -93,7 +93,7 @@ export function resolveDefaultFrom(
   template: string,
   context: Record<string, unknown>
 ): string {
-  return template.replace(/\{([^}]+)\}/g, (_, path) => {
+  return template.replace(/\{([^}]+)\}/gu, (_, path) => {
     const parts = (path as string).split(".");
     let cursor: unknown = context;
     for (const part of parts) {
@@ -103,7 +103,7 @@ export function resolveDefaultFrom(
         return "";
       }
     }
-    return cursor == null ? "" : String(cursor);
+    return cursor === null || cursor === undefined ? "" : String(cursor);
   });
 }
 
@@ -124,7 +124,6 @@ export function defaultOf<T>(schema: z.ZodTypeAny): T | undefined {
     const wrapped = (def as { defaultValue?: T }).defaultValue;
     return typeof wrapped === "function" ? (wrapped as () => T)() : wrapped;
   }
-  return;
 }
 
 /**
@@ -155,7 +154,6 @@ export function enumChoices(
     }
     return;
   }
-  return;
 }
 
 export type FieldResolver = (input: {

@@ -253,7 +253,7 @@ export async function listPresetIds(cliRoot?: string): Promise<string[]> {
     try {
       const entries = await readdir(presetsDir);
       for (const entry of entries) {
-        const m = entry.match(/^(?!_)([a-z0-9][a-z0-9-]*)\.(ts|mjs|js)$/);
+        const m = entry.match(/^(?!_)([a-z0-9][a-z0-9-]*)\.(ts|mjs|js)$/u);
         if (m?.[1]) {
           ids.add(m[1]);
         }

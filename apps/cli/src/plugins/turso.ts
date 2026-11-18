@@ -33,7 +33,7 @@ async function findExistingDb(name: string): Promise<string | undefined> {
     return await getDbUrl(name);
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? "";
-    if (/not found|does not exist|no such|could not find/i.test(stderr)) {
+    if (/not found|does not exist|no such|could not find/iu.test(stderr)) {
       return;
     }
     throw err;
@@ -83,7 +83,7 @@ export async function create(ctx: Ctx): Promise<TursoRefs> {
       );
     } catch (err) {
       const stderr = (err as { stderr?: string }).stderr ?? "";
-      if (/unknown flag.*output/i.test(stderr)) {
+      if (/unknown flag.*output/iu.test(stderr)) {
         // Older turso CLIs don't support --output json; retry without.
         await execa("turso", ["db", "create", name, "--group", DEFAULT_GROUP], {
           stdio: "pipe",

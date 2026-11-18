@@ -133,7 +133,7 @@ async function pickOrg(initial?: string): Promise<string> {
   if (orgs.length === 0) {
     bail("No orgs configured. Run `t-stack org add <name>` first.");
   }
-  if (initial && orgs.find((o) => o.name === initial)) {
+  if (initial && orgs.some((o) => o.name === initial)) {
     return initial;
   }
   if (orgs.length === 1 && orgs[0]) {
@@ -627,8 +627,8 @@ async function ensureZoneForDomain(
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9-]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
     .slice(0, 64);
 }
 
@@ -656,7 +656,7 @@ async function fetchExistingHookdeckKey(
     const v = parsed.HOOKDECK_API_KEY;
     return typeof v === "string" && v.length > 0 ? v : undefined;
   } catch {
-    return;
+    // Unreadable or malformed config — treat as no key.
   }
 }
 

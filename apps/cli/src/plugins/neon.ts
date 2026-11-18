@@ -74,7 +74,7 @@ function readNeonctlToken(): string | undefined {
     const parsed = JSON.parse(raw) as { access_token?: string };
     return parsed.access_token;
   } catch {
-    return;
+    // Unreadable or malformed credentials — treat as signed out.
   }
 }
 
@@ -178,7 +178,7 @@ async function findExistingProject(
     list = [];
   }
   const needle = name.toLowerCase();
-  return list.find((p) => p.name.toLowerCase() === needle);
+  return list.find((project) => project.name.toLowerCase() === needle);
 }
 
 async function fetchConnectionString(
@@ -336,7 +336,7 @@ export async function verifyExists(
     return true;
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? "";
-    if (/not found|does not exist|no such/i.test(stderr)) {
+    if (/not found|does not exist|no such/iu.test(stderr)) {
       return false;
     }
     throw err;
@@ -357,7 +357,7 @@ export async function destroy(ctx: Ctx, refs: NeonRefs): Promise<void> {
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? "";
     // Idempotent: project already deleted (or never created) is a soft-success.
-    if (/failed to fetch project|not found/i.test(stderr)) {
+    if (/failed to fetch project|not found/iu.test(stderr)) {
       ctx.logger.debug(`neon.destroy project ${refs.projectId} already gone`);
       return;
     }

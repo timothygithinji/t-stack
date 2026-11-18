@@ -26,7 +26,6 @@ export function resolveZoneForDomain(
       return { apex: candidate, zoneId };
     }
   }
-  return;
 }
 
 interface CloudflareZonesResponse {

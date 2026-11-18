@@ -22,11 +22,11 @@ export const Route = createFileRoute("/new")({
 
 function StackBuilderPage() {
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <header className="flex items-center justify-between border-border border-b px-5 py-3">
+    <div className="bg-background text-foreground flex h-screen flex-col">
+      <header className="border-border flex items-center justify-between border-b px-5 py-3">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm">t-stack</span>
-          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
+          <span className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">
             stack builder
           </span>
         </div>
@@ -34,7 +34,7 @@ function StackBuilderPage() {
           <ThemeToggle />
           <a
             aria-label="GitHub repository"
-            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground inline-flex size-8 items-center justify-center rounded-md border transition-colors"
             href="https://github.com/timothygithinji/t-stack"
             rel="noreferrer"
             target="_blank"

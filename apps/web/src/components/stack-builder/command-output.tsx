@@ -10,8 +10,8 @@ interface CommandOutputProps {
 export function CommandOutput({ command, copied, onCopy }: CommandOutputProps) {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)]">
-      <div className="flex items-center justify-between border-[var(--color-border)] border-b px-3 py-2">
-        <p className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
+        <p className="font-mono text-[10px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
           CLI command
         </p>
         <button

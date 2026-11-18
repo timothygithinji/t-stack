@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
   "extends": ["ultracite/biome/core", "ultracite/biome/react"],
   "files": {
     "includes": [
@@ -28,6 +28,26 @@
       "source": {
         "useSortedInterfaceMembers": "off",
         "organizeImports": "off"
+      }
+    }
+  },
+  "linter": {
+    "rules": {
+      "performance": {
+        "noAwaitInLoops": "off",
+        "noJsxPropsBind": "off"
+      },
+      "style": {
+        "useDestructuring": "off",
+        "useConsistentMethodSignatures": "off",
+        "useErrorCause": "off",
+        "useNamedCaptureGroup": "off"
+      },
+      "suspicious": {
+        "noUnnecessaryConditions": "off"
+      },
+      "complexity": {
+        "noRedundantDefaultExport": "off"
       }
     }
   },
@@ -68,6 +88,9 @@
             "useAwait": "off",
             "noEmptyBlockStatements": "off",
             "noEmptySource": "off"
+          },
+          "style": {
+            "useImportsFirst": "off"
           }
         }
       }
@@ -78,6 +101,9 @@
         "rules": {
           "performance": {
             "noNamespaceImport": "off"
+          },
+          "a11y": {
+            "noLabelWithoutControl": "off"
           }
         }
       }
@@ -88,6 +114,16 @@
         "rules": {
           "performance": {
             "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useBaseline": "off"
           }
         }
       }

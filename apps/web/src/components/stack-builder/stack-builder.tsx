@@ -36,7 +36,7 @@ export function StackBuilder() {
 
   return (
     <div className="grid h-[calc(100vh-3.25rem)] grid-cols-1 overflow-hidden sm:grid-cols-[34rem_minmax(0,1fr)]">
-      <aside className="flex min-h-0 flex-col overflow-y-auto border-[var(--color-border)] border-r">
+      <aside className="flex min-h-0 flex-col overflow-y-auto border-r border-[var(--color-border)]">
         <FieldRenderer
           projectNameError={projectNameError}
           setStack={setStack}
@@ -46,8 +46,8 @@ export function StackBuilder() {
       </aside>
 
       <main className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex h-12 shrink-0 items-center justify-between border-[var(--color-border)] border-b px-5">
-          <h2 className="font-mono text-[10px] text-[var(--color-muted-foreground)] uppercase tracking-wide">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-5">
+          <h2 className="font-mono text-[10px] tracking-wide text-[var(--color-muted-foreground)] uppercase">
             Output
           </h2>
           <ShareButton copied={shareCopied} onCopy={copyShareUrl} />

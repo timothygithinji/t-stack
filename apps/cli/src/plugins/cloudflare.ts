@@ -296,7 +296,7 @@ export async function deleteWorker(ctx: Ctx): Promise<void> {
       });
     } catch (err) {
       const stderr = (err as { stderr?: string }).stderr ?? "";
-      if (/not found|does not exist|10007/i.test(stderr)) {
+      if (/not found|does not exist|10007/iu.test(stderr)) {
         ctx.logger.debug(
           `cloudflare.deleteWorker worker already gone (${dir})`
         );

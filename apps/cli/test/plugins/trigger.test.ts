@@ -67,7 +67,7 @@ function prodKeyResponse(apiKey = "tr_prod_secret_xxx") {
 const server = setupServer();
 
 describe("trigger plugin (org-scoped)", () => {
-  beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+  beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
   afterEach(() => server.resetHandlers());
   afterAll(() => server.close());
 
@@ -254,7 +254,7 @@ describe("trigger plugin (org-scoped)", () => {
       projectName: "demo",
       org: { triggerOrgSlug: undefined },
     });
-    await expect(createProject(ctx)).rejects.toThrow(/no triggerOrgSlug/);
+    await expect(createProject(ctx)).rejects.toThrow(/no triggerOrgSlug/u);
   });
 
   it("syncEnvVars POSTs variables as an object map (not array) with override:true", async () => {
@@ -338,7 +338,7 @@ describe("trigger plugin (org-scoped)", () => {
       org: { triggerOrgSlug: "personal-108a" },
     });
     await expect(createProject(ctx)).rejects.toThrow(
-      /no production secret key/
+      /no production secret key/u
     );
   });
 

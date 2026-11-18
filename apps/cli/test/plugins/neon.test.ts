@@ -89,7 +89,6 @@ describe("neon.create", () => {
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
         }
-        return;
       },
     ]);
 
@@ -121,7 +120,6 @@ describe("neon.create", () => {
             stdout: JSON.stringify({ uri: "postgres://demo-existing" }),
           };
         }
-        return;
       },
     ]);
 
@@ -150,7 +148,6 @@ describe("neon.create", () => {
             stdout: JSON.stringify({ uri: "postgres://demo-existing" }),
           };
         }
-        return;
       },
     ]);
 
@@ -177,7 +174,6 @@ describe("neon.create", () => {
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
         }
-        return;
       },
     ]);
 
@@ -207,7 +203,6 @@ describe("neon.create", () => {
         if (isConnStringCall(c)) {
           return { stdout: JSON.stringify({ uri: "postgres://demo-url" }) };
         }
-        return;
       },
     ]);
 
@@ -231,7 +226,6 @@ describe("neon.verifyExists", () => {
         ) {
           return { stdout: JSON.stringify({ project: { id: "p1" } }) };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -249,7 +243,6 @@ describe("neon.verifyExists", () => {
         ) {
           return { throws: true, stderr: "Project not found: p-gone" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
@@ -267,7 +260,6 @@ describe("neon.verifyExists", () => {
         ) {
           return { throws: true, stderr: "ECONNRESET" };
         }
-        return;
       },
     ]);
     const ctx = await makeTestCtx({ projectName: "demo" });
