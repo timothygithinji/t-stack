@@ -399,7 +399,7 @@ const addonOptions: SelectOption[] = [
   {
     value: "release-it",
     label: "release-it",
-    description: "Automated changelogs + releases.",
+    description: "Tagged GitHub releases with generated notes.",
     icon: Rocket,
   },
   {
