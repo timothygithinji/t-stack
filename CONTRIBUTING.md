@@ -12,13 +12,14 @@ bun run typecheck
 bun run build                 # bundle to dist/cli.js
 ```
 
-Husky enforces locally:
+Husky keeps local hooks fast:
 
 - `commit-msg` → commitlint (conventional format)
-- `pre-commit` → Biome (lint) + tsc (typecheck)
-- `pre-push` → vitest
+- `pre-commit` → Biome on staged files
 
-CI runs the same gates on every push/PR (`.github/workflows/ci.yml`) and again before any release (`.github/workflows/release.yml`).
+Lint, typecheck, tests and build run in CI (`.github/workflows/ci.yml`) on every PR and push to `main`, and again as the first job of every release (`.github/workflows/release.yml`).
+
+`main` is protected: changes land via pull request, and the `CI` check must pass before merging. Force-pushes and branch deletion are blocked.
 
 ## Smoke test
 
@@ -34,7 +35,9 @@ See [`scripts/smoke.ts`](./scripts/smoke.ts) for the full env-var contract.
 
 ## Releasing
 
-Releases are driven by a manually-triggered GitHub Action — **never run from a developer's machine**. The workflow uses [release-it](https://github.com/release-it/release-it) + [Conventional Commits](https://www.conventionalcommits.org/) to bump the version, update `CHANGELOG.md`, tag, create a GitHub release, and publish to npm (with provenance).
+Releases are driven by a manually-triggered GitHub Action — **never run from a developer's machine**. The workflow uses [release-it](https://github.com/release-it/release-it) + [Conventional Commits](https://www.conventionalcommits.org/) to work out the next version, tag it, create a GitHub release with generated notes, and publish to npm (with provenance).
+
+There is no `CHANGELOG.md` and no release commit. Git tags (`vX.Y.Z`) are the source of truth for versions, and [GitHub Releases](https://github.com/timothygithinji/t-stack/releases) are the changelog. `apps/cli/package.json` stays at `0.0.0-development` in the repo; CI sets the real version just before publishing.
 
 ### One-time setup
 
@@ -51,15 +54,15 @@ No `NPM_TOKEN`, no Doppler service token, no long-lived secrets anywhere. The re
 
 ### Cutting a release
 
-Just push conventional-commit changes to `main`. The Release workflow runs on every push and:
+Merge a PR with conventional commits into `main`. The Release workflow runs on every push that touches shipped files and:
 
 - exits cleanly if no `feat`/`fix`/`perf` commits since the last tag (so `docs`/`chore`/`refactor` pushes are no-ops)
-- otherwise bumps the version (semver from commit types), updates `CHANGELOG.md`, tags, creates the GitHub release, and publishes to npm
+- otherwise runs CI, computes the version (semver from commit types since the last tag), publishes to npm, pushes the tag, and creates the GitHub release
 
 For an out-of-band release (e.g. CI was flaky and you want to re-run the release pipeline), trigger manually from **Actions → Release → Run workflow** — the workflow accepts an optional "reason" input that gets logged for the audit trail.
 
 ### Local preview (no side effects)
 
 ```bash
-bun run release:dry        # preview the version + CHANGELOG diff release-it would produce
+bun run release:dry        # preview the next version + release notes
 ```

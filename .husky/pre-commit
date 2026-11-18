@@ -1,3 +1,2 @@
-# Lint staged files + full typecheck. Biome's --staged is fast.
-bunx biome check --staged --no-errors-on-unmatched || exit 1
-bun run typecheck || exit 1
+# Fast local feedback only — typecheck/tests/build run in CI (.github/workflows/ci.yml).
+bunx biome check --staged --no-errors-on-unmatched

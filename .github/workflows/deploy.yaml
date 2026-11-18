@@ -9,9 +9,9 @@ name: Deploy
 # up additional workflow files.
 on:
   workflow_run:
-    workflows: ["Release"]
-    types: [completed]
-    branches: [main]
+    workflows: [ "Release" ]
+    types: [ completed ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       target:
@@ -19,7 +19,7 @@ on:
         required: false
         default: web
         type: choice
-        options: [web]
+        options: [ web ]
       reason:
         description: "Reason for manual deploy"
         required: false
@@ -56,7 +56,7 @@ jobs:
             echo "Chained off Release workflow at commit $UPSTREAM"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # workflow_run defaults to the workflow file's branch (main),
         # but we want the exact commit Release ran against to keep the
         # deployed bundle in lockstep with the published CLI.
@@ -67,11 +67,11 @@ jobs:
         with:
           bun-version-file: .bun-version
 
-      # Wrangler 4.x requires Node 22+; the runner ships with 20.
+      # Wrangler 4.x requires Node 22+; pin a current LTS rather than the runner default.
       # bunx still picks up `node` from PATH when invoking wrangler's CLI.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -84,7 +84,7 @@ jobs:
       # only GitHub Actions secret we maintain — everything else flows
       # through Doppler so org-level rotations are one-and-done.
       - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
+        uses: dopplerhq/cli-action@v4
 
       - name: Deploy to Cloudflare Workers
         env:
