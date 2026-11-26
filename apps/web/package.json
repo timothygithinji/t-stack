@@ -24,20 +24,20 @@
     "@t-stack/templates": "workspace:*",
     "@t-stack/templating": "workspace:*",
     "@tanstack/react-router": "1.170.46",
-    "@tanstack/react-start": "1.169.5",
+    "@tanstack/react-start": "1.169.7",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "handlebars": "4.7.10",
-    "lucide-react": "1.75.0",
+    "lucide-react": "1.78.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "shiki": "4.6.0",
-    "tailwind-merge": "3.7.0",
+    "tailwind-merge": "3.7.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.70.0",
-    "@cloudflare/workers-types": "5.20261118.1",
+    "@cloudflare/vite-plugin": "1.70.1",
+    "@cloudflare/workers-types": "5.20261123.1",
     "@tailwindcss/vite": "4.3.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
@@ -46,6 +46,6 @@
     "tailwindcss": "4.3.5",
     "typescript": "7.0.2",
     "vite": "8.3.8",
-    "wrangler": "4.164.0"
+    "wrangler": "4.166.0"
   }
 }
